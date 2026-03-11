@@ -74,6 +74,7 @@
       gap: 20px;
       flex-wrap: wrap;
       justify-content: center;
+      align-items: stretch;
     }
     .flk-card {
       background: var(--n1);
@@ -83,7 +84,8 @@
       cursor: pointer;
       transition: all 0.2s;
       text-align: center;
-      min-width: 200px;
+      width: 260px;
+      flex-shrink: 0;
       color: var(--n4);
     }
     .flk-card:hover {
@@ -195,14 +197,15 @@
     }
     .subj-chevron {
       font-size: 0.7rem;
-      color: var(--n3);
+      color: var(--n8);
+      background: var(--n2);
       transition: transform 0.2s;
       padding: 6px 8px;
       margin: -6px -8px;
       border-radius: 6px;
       flex-shrink: 0;
     }
-    .subj-chevron:hover { background: var(--n2); color: var(--n8); }
+    .subj-chevron:hover { background: var(--n3); color: var(--n6); }
     .subj-chevron.open { transform: rotate(90deg); }
 
     .chapter-list { border-top: 1px solid var(--n3); display: none; }
