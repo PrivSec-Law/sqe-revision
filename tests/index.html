@@ -275,13 +275,7 @@ const TESTS = {
     official: [
       { file: "flk1/official/SQE1 FLK1 – Full Practice Exam.html", title: "SQE1 FLK1 – Full Practice Exam", questions: 110, sessions: 2 }
     ],
-    generated: [
-      { file: "flk1/generated/SQE1 FLK1 – Generated Practice Exam.html", title: "Generated Practice Exam 1", questions: 180, sessions: 2 },
-      { file: "flk1/generated/SQE1 FLK1 – Generated Practice Exam 2.html", title: "Generated Practice Exam 2", questions: 180, sessions: 2 },
-      { file: "flk1/generated/SQE1 FLK1 – Generated Practice Exam 3.html", title: "Generated Practice Exam 3", questions: 180, sessions: 2 },
-      { file: "flk1/generated/SQE1 FLK1 – Generated Practice Exam 4.html", title: "Generated Practice Exam 4", questions: 180, sessions: 2 },
-      { file: "flk1/generated/SQE1 FLK1 – Generated Practice Exam 5.html", title: "Generated Practice Exam 5", questions: 180, sessions: 2 }
-    ],
+    generated: [],
     topic: [
       { file: "flk1/topic/Business_Law_and_Practice.html", title: "Business Law & Practice", questions: 120 },
       { file: "flk1/topic/Constitutional_Administrative_and_EU_Law.html", title: "Constitutional & Administrative Law", questions: 100 },
@@ -298,13 +292,7 @@ const TESTS = {
     official: [
       { file: "flk2/official/SQE1 FLK2 – Full Practice Exam.html", title: "SQE1 FLK2 – Full Practice Exam", questions: 110, sessions: 2 }
     ],
-    generated: [
-      { file: "flk2/generated/SQE1 FLK2 – Generated Practice Exam.html", title: "Generated Practice Exam 1", questions: 180, sessions: 2 },
-      { file: "flk2/generated/SQE1 FLK2 – Generated Practice Exam 2.html", title: "Generated Practice Exam 2", questions: 180, sessions: 2 },
-      { file: "flk2/generated/SQE1 FLK2 – Generated Practice Exam 3.html", title: "Generated Practice Exam 3", questions: 180, sessions: 2 },
-      { file: "flk2/generated/SQE1 FLK2 – Generated Practice Exam 4.html", title: "Generated Practice Exam 4", questions: 180, sessions: 2 },
-      { file: "flk2/generated/SQE1 FLK2 – Generated Practice Exam 5.html", title: "Generated Practice Exam 5", questions: 180, sessions: 2 }
-    ],
+    generated: [],
     topic: [
       { file: "flk2/topic/Criminal_Law.html", title: "Criminal Law", questions: 110 },
       { file: "flk2/topic/Criminal_Practice.html", title: "Criminal Practice", questions: 120 },
@@ -436,10 +424,10 @@ function renderBrowse() {
       ${officialHtml}
     </div>
 
-    <div class="section">
+    ${d.generated.length ? `<div class="section">
       <div class="section-label">&#9881; Generated Full-Length Exams &mdash; 180 Qs, 2 sessions + break</div>
       ${generatedHtml}
-    </div>
+    </div>` : ''}
 
     <div class="section">
       <div class="section-label">&#9670; Topic Practice Tests</div>
