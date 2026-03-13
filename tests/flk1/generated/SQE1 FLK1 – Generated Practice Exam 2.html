@@ -158,7 +158,61 @@
         .modal h3 { font-size: 18px; margin-bottom: 12px; }
         .modal p { color: var(--text2); font-size: 14px; line-height: 1.6; margin-bottom: 24px; }
         .modal-btns { display: flex; gap: 10px; justify-content: center; }
+    
+        /* ── Mobile Responsive ──────────────────────────────── */
+        html { overflow-x: hidden; }
+        body { overflow-x: hidden; word-break: break-word; overflow-wrap: break-word; }
+
+        @media (max-width: 768px) {
+            .header { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
+            .header-left { gap: 6px; flex: 1; min-width: 0; }
+            .exam-title { max-width: 160px; font-size: 12px; }
+            .header-right { gap: 6px; }
+            .timer { font-size: 14px; padding: 4px 10px; }
+            .exam-badge, .session-badge { font-size: 9px; padding: 3px 7px; }
+
+            #start-screen { padding: 20px 14px; }
+            .start-card { padding: 28px 18px; }
+            .start-title { font-size: 18px; }
+            .start-stats { grid-template-columns: repeat(2, 1fr); }
+            .session-grid { grid-template-columns: 1fr; }
+
+            .main { padding: 16px 12px; gap: 14px; }
+            .q-card { padding: 18px 14px; }
+            .q-stem { font-size: 14px; line-height: 1.7; }
+            .q-question { font-size: 14px; }
+            .option { padding: 10px 12px; gap: 10px; }
+            .option-text { font-size: 13px; }
+            .q-dot { width: 26px; height: 26px; font-size: 10px; }
+            .nav-row { flex-wrap: wrap; justify-content: center; }
+            .key-hints { display: none; }
+
+            .break-card { padding: 28px 18px; }
+            .results-card { padding: 28px 18px; }
+            .session-results { grid-template-columns: 1fr; }
+            .results-card h2 { font-size: 20px; }
+
+            .review-header { padding: 10px 14px; }
+            .review-content { padding: 16px 12px; }
+            .review-q { padding: 16px 12px; }
+
+            .modal { padding: 24px 18px; margin: 0 14px; }
+            .btn { padding: 10px 14px; font-size: 13px; }
+            .btn-large { padding: 12px 20px; font-size: 14px; }
+        }
+
+        @media (max-width: 380px) {
+            .header-left { flex-wrap: wrap; }
+            .exam-title { max-width: 120px; }
+            .start-stats { grid-template-columns: 1fr 1fr; gap: 6px; }
+            .q-dot { width: 24px; height: 24px; font-size: 9px; }
+        }
+
     </style>
+    <link rel="icon" type="image/x-icon" href="../../../favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="../../../favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../../../favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="../../../apple-touch-icon.png">
 </head>
 <body>
 
