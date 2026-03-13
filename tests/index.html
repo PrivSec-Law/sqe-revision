@@ -267,7 +267,7 @@ const TESTS = {
     label: "FLK 1",
     subjects: ["Business Law", "Constitutional Law", "Contract", "Dispute Resolution", "Ethics", "Legal System", "Tort"],
     official: [
-      { file: "flk1/official/SQE1 FLK1 – Full Practice Exam.html", title: "SQE1 FLK1 – Full Practice Exam", questions: 110, sessions: 2 }
+      { file: "flk1/official/SQE1 FLK1 – Full Practice Exam.html", title: "SQE1 FLK1 – Full Practice Exam", questions: 110, timed: true }
     ],
     topic: [
       { file: "flk1/topic/Business_Law_and_Practice.html", title: "Business Law & Practice", questions: 120 },
@@ -283,7 +283,7 @@ const TESTS = {
     label: "FLK 2",
     subjects: ["Criminal Law", "Criminal Practice", "Land Law", "Property Practice", "Solicitors' Accounts", "Trusts", "Wills & Succession"],
     official: [
-      { file: "flk2/official/SQE1 FLK2 – Full Practice Exam.html", title: "SQE1 FLK2 – Full Practice Exam", questions: 110, sessions: 2 }
+      { file: "flk2/official/SQE1 FLK2 – Full Practice Exam.html", title: "SQE1 FLK2 – Full Practice Exam", questions: 110, timed: true }
     ],
     topic: [
       { file: "flk2/topic/Criminal_Law.html", title: "Criminal Law", questions: 110 },
@@ -362,7 +362,7 @@ function renderBrowse() {
     const iconText = type === 'official' ? '&#9733;' : '&#9670;';
     const badgeClass = type === 'official' ? 'full' : 'topic-b';
     let meta = `${t.questions} questions`;
-    if (t.sessions) meta += ` &middot; ${t.sessions} sessions with break`;
+    if (t.timed) meta += ` &middot; 188 min timed`;
     const badgeText = type === 'official' ? 'Official' : 'Topic';
 
     return `
