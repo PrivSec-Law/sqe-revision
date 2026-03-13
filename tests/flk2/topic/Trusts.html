@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trusts — Topic Practice Test</title>
+    <style>
+        :root {
+            --bg: #2E3440;
+            --surface: #3B4252;
+            --surface2: #434C5E;
+            --text: #ECEFF4;
+            --text2: #D8DEE9;
+            --accent: #5E81AC;
+            --accent-hover: #81A1C1;
+            --correct: #A3BE8C;
+            --incorrect: #BF616A;
+            --border: #4C566A;
+            --yellow: #EBCB8B;
+            --orange: #D08770;
+            --purple: #B48EAD;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── Header ── */
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-left { display: flex; align-items: center; gap: 14px; }
+        .exam-badge {
+            background: var(--accent);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .exam-title { font-size: 14px; font-weight: 600; color: var(--text); max-width: 400px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .header-right { display: flex; align-items: center; gap: 14px; }
+        .timer {
+            font-size: 17px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            background: var(--surface2);
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            transition: color 0.3s, border-color 0.3s;
+        }
+        .timer.warning { color: var(--yellow); border-color: var(--yellow); }
+        .timer.critical { color: var(--incorrect); border-color: var(--incorrect); animation: pulse 1s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
+
+        /* ── Progress bar ── */
+        .progress-wrap { background: var(--surface2); height: 3px; }
+        .progress-bar { height: 100%; background: var(--accent); transition: width 0.3s ease; }
+
+        /* ── Screens ── */
+        .screen { display: none; }
+        .screen.active { display: flex; flex-direction: column; }
+
+        /* ── Start screen ── */
+        #start-screen { min-height: 100vh; align-items: center; justify-content: center; padding: 40px 24px; }
+        .start-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 48px 40px;
+            max-width: 520px;
+            width: 100%;
+            text-align: center;
+        }
+        .start-badge {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 20px;
+        }
+        .start-title { font-size: 22px; font-weight: 700; margin-bottom: 10px; line-height: 1.3; }
+        .start-subtitle { font-size: 14px; color: var(--text2); margin-bottom: 28px; line-height: 1.6; }
+        .start-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 28px; }
+        .stat { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px 10px; }
+        .stat-value { font-size: 22px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+        .stat-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+        .timer-row {
+            display: flex; align-items: center; justify-content: center;
+            gap: 10px; margin-bottom: 22px; font-size: 14px; color: var(--text2); cursor: pointer;
+        }
+        .toggle { width: 38px; height: 20px; background: var(--surface2); border-radius: 10px; position: relative; transition: background 0.2s; border: 1px solid var(--border); flex-shrink: 0; }
+        .toggle.on { background: var(--accent); border-color: var(--accent); }
+        .toggle-thumb { width: 14px; height: 14px; background: white; border-radius: 50%; position: absolute; top: 2px; left: 2px; transition: transform 0.2s; }
+        .toggle.on .toggle-thumb { transform: translateX(18px); }
+
+        /* ── Exam screen ── */
+        .main { flex: 1; display: flex; flex-direction: column; max-width: 840px; width: 100%; margin: 0 auto; padding: 28px 20px; gap: 20px; }
+
+        /* Question nav dots */
+        .q-nav { display: flex; flex-wrap: wrap; gap: 5px; }
+        .q-dot {
+            width: 30px; height: 30px; border-radius: 6px;
+            border: 1px solid var(--border); background: var(--surface);
+            color: var(--text2); font-size: 11px; font-weight: 600;
+            cursor: pointer; transition: all 0.12s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .q-dot:hover { border-color: var(--accent); color: var(--accent); }
+        .q-dot.answered { background: var(--surface2); color: var(--text); border-color: var(--surface2); }
+        .q-dot.current { background: var(--accent); color: white; border-color: var(--accent); }
+        .q-dot.correct { background: var(--correct); color: white; border-color: var(--correct); }
+        .q-dot.incorrect { background: var(--incorrect); color: white; border-color: var(--incorrect); }
+
+        /* Question card */
+        .q-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; }
+        .q-meta { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+        .q-number { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+        .q-topic-badge { font-size: 12px; color: var(--text2); background: var(--surface2); padding: 3px 10px; border-radius: 20px; border: 1px solid var(--border); }
+        .q-stem { font-size: 15px; line-height: 1.8; color: var(--text); margin-bottom: 0; white-space: normal; user-select: text; cursor: text; }
+        mark.hl { background: #EBCB8B; color: #2E3440; border-radius: 2px; cursor: pointer; padding: 0 1px; }
+        #hl-btn { position: fixed; background: #EBCB8B; color: #2E3440; border: none; border-radius: 5px; padding: 5px 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: none; z-index: 9999; box-shadow: 0 2px 10px rgba(0,0,0,.4); letter-spacing: .3px; }
+        #hl-btn:hover { background: #D8B97A; }
+        .q-question { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 20px; margin-top: 1.4em; }
+
+        /* Options */
+        .options { display: flex; flex-direction: column; gap: 8px; }
+        .option {
+            display: flex; align-items: flex-start; gap: 12px;
+            padding: 13px 14px; border-radius: 8px;
+            border: 1px solid var(--border); background: var(--bg);
+            cursor: pointer; transition: all 0.12s; user-select: none;
+        }
+        .option:hover:not(.disabled) { border-color: var(--accent); background: rgba(59,130,246,0.06); }
+        .option.selected { border-color: var(--accent); background: rgba(59,130,246,0.1); }
+        .option.correct { border-color: var(--correct); background: rgba(34,197,94,0.1); }
+        .option.incorrect { border-color: var(--incorrect); background: rgba(239,68,68,0.1); }
+        .option.disabled { cursor: default; }
+        .option-label {
+            display: flex; align-items: center; justify-content: center;
+            min-width: 26px; height: 26px; border-radius: 5px;
+            background: var(--surface2); color: var(--text2);
+            font-size: 12px; font-weight: 700; transition: all 0.12s; flex-shrink: 0;
+        }
+        .option.selected .option-label { background: var(--accent); color: white; }
+        .option.correct .option-label { background: var(--correct); color: white; }
+        .option.incorrect .option-label { background: var(--incorrect); color: white; }
+        .option-text { font-size: 14px; line-height: 1.6; color: var(--text); flex: 1; }
+
+        /* Navigation */
+        .nav-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+        .key-hints { font-size: 12px; color: var(--text2); text-align: center; }
+        .kbd { display: inline-block; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: 10px; font-family: monospace; color: var(--text2); }
+
+        /* Buttons */
+        .btn { padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; transition: all 0.12s; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--surface2); }
+        .btn-danger { background: transparent; color: var(--incorrect); border: 1px solid var(--incorrect); }
+        .btn-danger:hover { background: rgba(239,68,68,0.1); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* ── Results screen ── */
+        #results-screen { min-height: 100vh; align-items: center; justify-content: center; padding: 40px 24px; }
+        .results-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 16px; padding: 44px 40px;
+            max-width: 600px; width: 100%; text-align: center;
+        }
+        .score-circle {
+            width: 110px; height: 110px; border-radius: 50%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            margin: 0 auto 18px; border: 4px solid var(--accent);
+        }
+        .score-pct { font-size: 30px; font-weight: 800; }
+        .score-small { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+        .verdict { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+        .verdict-sub { font-size: 14px; color: var(--text2); margin-bottom: 28px; }
+        .res-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 28px; }
+        .res-stat { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+        .res-stat-value { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+        .res-stat-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+        .res-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px; }
+        .perf-box {
+            background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+            padding: 14px 16px; text-align: left; font-size: 12px; color: var(--text2);
+            font-family: monospace; line-height: 1.7; white-space: pre-wrap; margin-top: 12px;
+        }
+
+        /* ── Review screen ── */
+        .review-header {
+            background: var(--surface); border-bottom: 1px solid var(--border);
+            padding: 14px 24px; display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
+        }
+        .review-title { font-size: 15px; font-weight: 700; }
+        .review-content { max-width: 840px; width: 100%; margin: 0 auto; padding: 28px 20px; display: flex; flex-direction: column; gap: 16px; }
+        .review-q {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 10px; padding: 22px; border-left-width: 4px;
+        }
+        .review-q.right { border-left-color: var(--correct); }
+        .review-q.wrong { border-left-color: var(--incorrect); }
+        .review-q.skipped { border-left-color: var(--surface2); }
+        .review-q-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .r-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .b-correct { background: rgba(34,197,94,0.15); color: var(--correct); }
+        .b-incorrect { background: rgba(239,68,68,0.15); color: var(--incorrect); }
+        .b-skipped { background: var(--surface2); color: var(--text2); }
+
+        /* ── Modal ── */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; z-index: 200; }
+        .modal-overlay.open { display: flex; }
+        .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; max-width: 400px; width: 100%; text-align: center; }
+        .modal h3 { font-size: 18px; margin-bottom: 12px; }
+        .modal p { color: var(--text2); font-size: 14px; line-height: 1.6; margin-bottom: 24px; }
+        .modal-btns { display: flex; gap: 10px; justify-content: center; }
+    </style>
+</head>
+<body>
+
+<!-- ══ START SCREEN ══ -->
+<div id="start-screen" class="screen active">
+    <div class="start-card">
+        <div class="start-badge">SQE1 Practice</div>
+        <h1 class="start-title" id="start-title"></h1>
+        <p class="start-subtitle">Single Best Answer — select the most correct option for each question.</p>
+        <div class="start-stats">
+            <div class="stat">
+                <div class="stat-value" id="stat-q">0</div>
+                <div class="stat-label">Questions</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="stat-t">0m</div>
+                <div class="stat-label">SQE Time</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">A–E</div>
+                <div class="stat-label">Format</div>
+            </div>
+        </div>
+        <div class="timer-row" onclick="toggleTimer()">
+            <span>Timed mode</span>
+            <div class="toggle on" id="timer-toggle"><div class="toggle-thumb"></div></div>
+            <span id="timer-txt">On</span>
+        </div>
+        <button class="btn btn-primary" style="width:100%;padding:13px;font-size:15px;" onclick="startExam()">Begin Exam</button>
+    </div>
+</div>
+
+<!-- ══ EXAM SCREEN ══ -->
+<div id="exam-screen" class="screen">
+    <div class="header">
+        <div class="header-left">
+            <span class="exam-badge">SQE1</span>
+            <span class="exam-title" id="hdr-title"></span>
+        </div>
+        <div class="header-right">
+            <div class="timer" id="timer">--:--</div>
+            <button class="btn btn-danger" style="padding:7px 13px;" onclick="confirmEnd()">End Exam</button>
+        </div>
+    </div>
+    <div class="progress-wrap"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
+    <div class="main">
+        <div class="q-nav" id="q-nav"></div>
+        <div class="q-card">
+            <div class="q-meta">
+                <span class="q-number" id="q-num">Question 1 of N</span>
+                <span class="q-topic-badge" id="q-topic"></span>
+            </div>
+            <div class="q-stem" id="q-stem"></div>
+            <div class="q-question" id="q-question"></div>
+            <div class="options" id="options"></div>
+        </div>
+        <div class="nav-row">
+            <button class="btn btn-secondary" id="btn-prev" onclick="prev()">← Prev</button>
+            <div class="key-hints">
+                <span class="kbd">A</span>–<span class="kbd">E</span> answer &nbsp;·&nbsp;
+                <span class="kbd">→</span> next &nbsp;·&nbsp;
+                <span class="kbd">←</span> prev
+            </div>
+            <button class="btn btn-primary" id="btn-next" onclick="next()">Next →</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ RESULTS SCREEN ══ -->
+<div id="results-screen" class="screen">
+    <div style="display:flex;align-items:center;justify-content:center;flex:1;padding:40px 24px;">
+        <div class="results-card">
+            <div class="score-circle" id="score-circle">
+                <div class="score-pct" id="score-pct">-</div>
+                <div class="score-small">Score</div>
+            </div>
+            <div class="verdict" id="verdict"></div>
+            <div class="verdict-sub" id="verdict-sub"></div>
+            <div class="res-stats">
+                <div class="res-stat">
+                    <div class="res-stat-value" style="color:var(--correct)" id="r-correct">-</div>
+                    <div class="res-stat-label">Correct</div>
+                </div>
+                <div class="res-stat">
+                    <div class="res-stat-value" style="color:var(--incorrect)" id="r-wrong">-</div>
+                    <div class="res-stat-label">Incorrect</div>
+                </div>
+                <div class="res-stat">
+                    <div class="res-stat-value" style="color:var(--text2)" id="r-skip">-</div>
+                    <div class="res-stat-label">Skipped</div>
+                </div>
+            </div>
+            <div class="res-actions">
+                <button class="btn btn-secondary" onclick="showReview()">Review Answers</button>
+                <button class="btn btn-primary" id="copy-btn" onclick="copySummary()">Copy Summary for Claude</button>
+                <button class="btn btn-secondary" onclick="restart()">Restart</button>
+            </div>
+            <div id="summary-box"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ REVIEW SCREEN ══ -->
+<div id="review-screen" class="screen">
+    <div class="review-header">
+        <span class="review-title">Review All Answers</span>
+        <button class="btn btn-secondary" style="padding:7px 13px;" onclick="show('results-screen')">← Results</button>
+    </div>
+    <div class="review-content" id="review-content"></div>
+</div>
+
+<!-- ══ END MODAL ══ -->
+<div class="modal-overlay" id="end-modal">
+    <div class="modal">
+        <h3>End the exam?</h3>
+        <p>You have <strong id="modal-skip">0</strong> unanswered question(s). This cannot be undone.</p>
+        <div class="modal-btns">
+            <button class="btn btn-secondary" onclick="closeModal()">Keep going</button>
+            <button class="btn btn-danger" onclick="endExam()">End exam</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  EXAM DATA  (replaced by test-digitiser skill)
+// ─────────────────────────────────────────────
+const EXAM_DATA = {"title": "Trusts — Topic Practice Test", "questions": [{"id": 1, "topic": "Trusts", "stem": "George, a wealthy businessman, decides to create a trust for his daughter, Emma, to ensure she receives financial support during her university years. He writes a letter stating, \"I give you my shares in GreenTech Corporation to hold on trust for Emma, and you shall pay her any dividends until she graduates.\" However, George does not specify who should manage the trust property, nor does he provide any further instructions. Question: Which of the following elements is most likely to cause George’s declaration to fail in creating a valid trust?", "question": "George, a wealthy businessman, decides to create a trust for his daughter, Emma, to ensure she receives financial support during her university years. He writes a letter stating, \"I give you my shares in GreenTech Corporation to hold on trust for Emma, and you shall pay her any dividends until she graduates.\" However, George does not specify who should manage the trust property, nor does he provide any further instructions. Question: Which of the following elements is most likely to cause George’s declaration to fail in creating a valid trust?", "options": {"A": "The lack of specification regarding how the trustee should manage the property", "B": "The use of a letter instead of a formal trust deed", "C": "The failure to name Emma as the beneficiary", "D": "The trust is created by a letter, not a formal declaration of trust", "E": "The lack of certainty regarding Emma’s graduation timeline"}, "answer": "A", "explanation": null}, {"id": 2, "topic": "Trusts", "stem": "Liam has an extensive art collection and wishes to ensure his collection is preserved for future generations. He writes in his will, \"I leave my entire art collection to my trustees to be kept for my descendants.\" He does not specify how the collection is to be cared for or how the trustees are to distribute or preserve it for his descendants. Question: What is the main issue with Liam’s declaration of trust in this case?", "question": "Liam has an extensive art collection and wishes to ensure his collection is preserved for future generations. He writes in his will, \"I leave my entire art collection to my trustees to be kept for my descendants.\" He does not specify how the collection is to be cared for or how the trustees are to distribute or preserve it for his descendants. Question: What is the main issue with Liam’s declaration of trust in this case?", "options": {"A": "The art collection is not clearly described", "B": "There is no certainty regarding who the beneficiaries are", "C": "The will fails to specify how the art collection should be maintained and preserved", "D": "The trust is not in writing", "E": "There are too many trustees to manage the collection"}, "answer": "C", "explanation": null}, {"id": 3, "topic": "Trusts", "stem": "Samantha creates a trust for her children’s education. In her will, she states, \"I leave £100,000 in trust for my children to pay for their education at any school or college they choose.\" However, she does not specify how the funds should be distributed among her four children, nor does she detail any conditions for the distribution. Question: Which of the following principles of trust law is most likely to be challenged in this situation?", "question": "Samantha creates a trust for her children’s education. In her will, she states, \"I leave £100,000 in trust for my children to pay for their education at any school or college they choose.\" However, she does not specify how the funds should be distributed among her four children, nor does she detail any conditions for the distribution. Question: Which of the following principles of trust law is most likely to be challenged in this situation?", "options": {"A": "Certainty of subject-matter", "B": "Certainty of intention", "C": "Certainty of objects (the beneficiaries)", "D": "The validity of the trust deed", "E": "The use of educational funds by children under 18"}, "answer": "C", "explanation": null}, {"id": 4, "topic": "Trusts", "stem": "Clara wishes to create a trust for her beloved pet dog, Max, in the event of her death. She states, “I leave £10,000 in trust for the care and well-being of my dog, Max.” Clara does not designate a trustee or provide any instructions on how the money should be spent. Question: What legal principle is likely to invalidate Clara’s trust arrangement for her pet?", "question": "Clara wishes to create a trust for her beloved pet dog, Max, in the event of her death. She states, “I leave £10,000 in trust for the care and well-being of my dog, Max.” Clara does not designate a trustee or provide any instructions on how the money should be spent. Question: What legal principle is likely to invalidate Clara’s trust arrangement for her pet?", "options": {"A": "Lack of certainty of intention to create a trust", "B": "Lack of certainty of subject-matter (the amount to be given to Max)", "C": "Lack of certainty of objects (Max being the beneficiary)", "D": "The absence of an express trustee", "E": "The sum of £10,000 is too small to create a trust"}, "answer": "D", "explanation": null}, {"id": 5, "topic": "Trusts", "stem": "David wishes to leave his property to his three children. In his will, he writes, “I leave all my real estate to my children to be divided as they see fit, with no specific proportions or conditions attached.” His children are all in agreement, but there are concerns that the terms might not be valid. Question: What might cause the trust arrangement to be challenged or considered invalid?", "question": "David wishes to leave his property to his three children. In his will, he writes, “I leave all my real estate to my children to be divided as they see fit, with no specific proportions or conditions attached.” His children are all in agreement, but there are concerns that the terms might not be valid. Question: What might cause the trust arrangement to be challenged or considered invalid?", "options": {"A": "The lack of specificity regarding how the property should be divided among the children", "B": "The fact that the trust was created via a will", "C": "The absence of a formal trust deed", "D": "The property must be sold to fund the trust", "E": "The children’s inability to divide the property equally"}, "answer": "A", "explanation": null}, {"id": 6, "topic": "Trusts", "stem": "Megan creates a trust for her grandchildren. She states, \"I leave £500,000 in trust for my grandchildren, to be distributed when they reach the age of 25 years, or when they get married, whichever comes first.\" However, she does not name the trustee who will manage the funds or define how they will be distributed. Question: What aspect of Megan’s declaration might make the trust invalid?", "question": "Megan creates a trust for her grandchildren. She states, \"I leave £500,000 in trust for my grandchildren, to be distributed when they reach the age of 25 years, or when they get married, whichever comes first.\" However, she does not name the trustee who will manage the funds or define how they will be distributed. Question: What aspect of Megan’s declaration might make the trust invalid?", "options": {"A": "The lack of a trustee to manage the trust", "B": "The age condition is unclear or too restrictive", "C": "The requirement of marriage as a condition for receiving funds", "D": "The grandchildren are not named specifically by name", "E": "The use of the funds for marriage or education is unclear"}, "answer": "A", "explanation": null}, {"id": 7, "topic": "Trusts", "stem": "Brian wishes to leave money to a charity but is unsure which one. He writes, \"I leave £200,000 in trust to benefit a charity of my choice, which will be decided by my trustee.\" However, he does not specify any other details about the trustee or the nature of the charitable cause. Question: Which of the following issues is most likely to challenge the validity of Brian’s trust?", "question": "Brian wishes to leave money to a charity but is unsure which one. He writes, \"I leave £200,000 in trust to benefit a charity of my choice, which will be decided by my trustee.\" However, he does not specify any other details about the trustee or the nature of the charitable cause. Question: Which of the following issues is most likely to challenge the validity of Brian’s trust?", "options": {"A": "Lack of certainty about which charity will benefit from the trust", "B": "The trustee is given full discretion to choose the charity", "C": "The amount of money is insufficient to support a charitable trust", "D": "The trust must be recorded in a government registry", "E": "The trust will benefit multiple individuals instead of just one charity"}, "answer": "A", "explanation": null}, {"id": 8, "topic": "Trusts", "stem": "Helen wishes to create a trust for her son, Richard. She states, \"I leave £50,000 to my son Richard to be spent on his education, as the trustee deems appropriate.\" However, she does not name the trustee who will administer the funds, and she provides no further conditions. Question: What is the most likely reason the trust could be challenged or invalidated?", "question": "Helen wishes to create a trust for her son, Richard. She states, \"I leave £50,000 to my son Richard to be spent on his education, as the trustee deems appropriate.\" However, she does not name the trustee who will administer the funds, and she provides no further conditions. Question: What is the most likely reason the trust could be challenged or invalidated?", "options": {"A": "The lack of a trustee named to administer the funds", "B": "The failure to specify how Richard should use the £50,000", "C": "The condition of spending on education is too vague", "D": "The £50,000 is not enough to fund an education", "E": "The trust has no specific provisions for distribution"}, "answer": "A", "explanation": null}, {"id": 9, "topic": "Trusts", "stem": "Tom creates a trust for his adult children in his will, stating, \"I leave my estate to my children in equal shares, and I leave the management of this estate to my trustee.\" However, Tom does not name the trustee and provides no instructions on how the estate should be divided, nor does he specify whether certain assets should be sold. Question: Which of the following is the most significant flaw in Tom’s trust arrangement?", "question": "Tom creates a trust for his adult children in his will, stating, \"I leave my estate to my children in equal shares, and I leave the management of this estate to my trustee.\" However, Tom does not name the trustee and provides no instructions on how the estate should be divided, nor does he specify whether certain assets should be sold. Question: Which of the following is the most significant flaw in Tom’s trust arrangement?", "options": {"A": "The failure to specify how the estate should be divided", "B": "The absence of a named trustee", "C": "The lack of clarity regarding the sale of estate assets", "D": "The equal division of the estate among children", "E": "The property being left in trust is too complex to manage"}, "answer": "B", "explanation": null}, {"id": 10, "topic": "Trusts", "stem": "Alice, a successful entrepreneur, has decided to create a trust over her real estate properties. She expresses her intentions in writing: \"I declare that my beachfront property at Seaside Villa, along with the proceeds from its sale, should be held in trust for my daughter, Lily, once I pass away.\" Alice appoints herself as the trustee.", "question": "However, due to her advanced age, she realizes that it may be necessary for her to appoint someone else to act as a trustee if she becomes incapacitated. Question: Which of the following is the most significant issue that Alice should address to ensure the trust’s constitution is valid and effective?", "options": {"A": "The need to appoint a third-party trustee before Alice becomes incapacitated", "B": "The inability to transfer legal title of the beachfront property to the trust immediately", "C": "The lack of certainty regarding how the proceeds from the sale should be managed", "D": "The possibility that Lily might not be able to inherit the property due to her young age", "E": "The absence of instructions on how to handle the trust property if the beachfront property is sold before Alice's death"}, "answer": "A", "explanation": null}, {"id": 11, "topic": "Trusts", "stem": "David wants to set up a trust over the shares he owns in a technology startup. He writes a trust deed, stating: \"I appoint myself as the trustee and hold my 1,000 shares in FutureTech Ltd on trust for my son, Peter.\" However, the shares are held in a digital account, and David is the only one with access to the account’s credentials. David has not yet transferred the legal title of the shares to a third-party trustee, though he has made clear his intention to do so. Question: Which of the following is the most important issue with respect to the constitution of this trust?", "question": "David wants to set up a trust over the shares he owns in a technology startup. He writes a trust deed, stating: \"I appoint myself as the trustee and hold my 1,000 shares in FutureTech Ltd on trust for my son, Peter.\" However, the shares are held in a digital account, and David is the only one with access to the account’s credentials. David has not yet transferred the legal title of the shares to a third-party trustee, though he has made clear his intention to do so. Question: Which of the following is the most important issue with respect to the constitution of this trust?", "options": {"A": "The shares are held in a digital format and not in physical form, which complicates the transfer", "B": "David’s sole access to the digital account renders the transfer to a trustee incomplete", "C": "The trust deed does not specify any distribution provisions regarding the shares", "D": "Peter may not legally own the shares until David’s death", "E": "The trust deed must specify a detailed investment strategy for the shares"}, "answer": "B", "explanation": null}, {"id": 12, "topic": "Trusts", "stem": "Sara, a wealthy philanthropist, has decided to create a charitable trust with the intention of donating her personal collection of rare books to her local library. In her will, she writes: \"I give my collection of 500 rare books to the trustees of the city library, to be held on trust for public access, and I direct them to use the collection to promote literary education.\" The library's board of trustees, however, is concerned that they cannot take legal title to the books until Sara’s death. Question: What legal principle should the trustees be concerned with regarding the constitution of this charitable trust?", "question": "Sara, a wealthy philanthropist, has decided to create a charitable trust with the intention of donating her personal collection of rare books to her local library. In her will, she writes: \"I give my collection of 500 rare books to the trustees of the city library, to be held on trust for public access, and I direct them to use the collection to promote literary education.\" The library's board of trustees, however, is concerned that they cannot take legal title to the books until Sara’s death. Question: What legal principle should the trustees be concerned with regarding the constitution of this charitable trust?", "options": {"A": "The books may not be legally transferred into the hands of the trustees before Sara’s death unless formalities are followed", "B": "The books must be given to the library immediately for use, regardless of Sara’s wishes", "C": "There is no need to formally transfer ownership of the books, as they are for charitable purposes", "D": "The trust cannot be established because the books are not physical property", "E": "The trustee’s role should be limited to managing the books once Sara has passed away, not holding legal title"}, "answer": "A", "explanation": null}, {"id": 13, "topic": "Trusts", "stem": "Jake creates a trust for his two children, Emma and Noah, but he does not want the trust property, which consists of valuable artwork, to be available to them until they turn 25. He writes in the trust deed: \"I transfer ownership of my art collection to my trustees, to be held for Emma and Noah until they reach the age of 25.\" However, he does not specify how the artwork should be managed, nor does he state how the trustees should handle any potential sale of the artwork. Question: What is the most significant issue that Jake should have addressed in the trust deed to ensure the trust is properly constituted?", "question": "Jake creates a trust for his two children, Emma and Noah, but he does not want the trust property, which consists of valuable artwork, to be available to them until they turn 25. He writes in the trust deed: \"I transfer ownership of my art collection to my trustees, to be held for Emma and Noah until they reach the age of 25.\" However, he does not specify how the artwork should be managed, nor does he state how the trustees should handle any potential sale of the artwork. Question: What is the most significant issue that Jake should have addressed in the trust deed to ensure the trust is properly constituted?", "options": {"A": "The legal title of the artwork must be transferred immediately to the trustees", "B": "The trust must include provisions for the trustees to manage and preserve the artwork", "C": "The beneficiaries (Emma and Noah) need to be explicitly named in the trust deed", "D": "Jake needs to specify the age at which the beneficiaries will receive the artwork, not just the funds", "E": "The trust deed should have conditions to sell the artwork if it depreciates in value"}, "answer": "B", "explanation": null}, {"id": 14, "topic": "Trusts", "stem": "Lisa has decided to create a trust for her niece, Julia. Lisa writes a trust deed: \"I declare that I hold my savings of £100,000 on trust for Julia. The trust will come into effect upon my death, and the trustee shall manage the trust according to Julia’s best interests.\" However, Lisa has not transferred legal title to the money yet, and she is unsure about the formalities required. Question: Which of the following is the most important step Lisa must take to ensure the trust is fully constituted?", "question": "Lisa has decided to create a trust for her niece, Julia. Lisa writes a trust deed: \"I declare that I hold my savings of £100,000 on trust for Julia. The trust will come into effect upon my death, and the trustee shall manage the trust according to Julia’s best interests.\" However, Lisa has not transferred legal title to the money yet, and she is unsure about the formalities required. Question: Which of the following is the most important step Lisa must take to ensure the trust is fully constituted?", "options": {"A": "Lisa must transfer the £100,000 into the trustee’s name before the trust takes effect", "B": "Lisa must specify how the trust should be distributed to Julia in the event of her death", "C": "The trust can be constituted once Julia is named as the beneficiary without further formalities", "D": "Lisa must ensure that the £100,000 is placed in a separate account under the trustee’s name", "E": "The trust must be formalized in a public registry before it can be legally effective"}, "answer": "A", "explanation": null}, {"id": 15, "topic": "Trusts", "stem": "Robert decides to set up a trust over his home, which he has lived in for many years. He writes, \"I declare that my home in London shall be held in trust for my children, Robert Jr. and Lucy, upon my death.\" Robert appoints his friend, Mark, as the trustee.", "question": "However, Robert does not specify how the home is to be managed or whether it should be sold and the proceeds distributed to the beneficiaries. Question: Which issue could arise with respect to the creation of this trust?", "options": {"A": "The trustee, Mark, is not required to sell the house, as it is directly bequeathed to the beneficiaries", "B": "Robert has not specified how the house should be maintained, which could create confusion for the trustee", "C": "The trust will automatically fail because Robert has named only one trustee", "D": "The trust deed must specify the market value of the home", "E": "Robert’s children must approve the creation of the trust for it to be valid"}, "answer": "B", "explanation": null}, {"id": 16, "topic": "Trusts", "stem": "Marion is a wealthy businesswoman who owns several investment properties. She writes in her will: \"Upon my death, I give all my properties to my trustees to hold for my grandchildren, subject to the following conditions: the properties shall be managed for the benefit of the grandchildren until they reach the age of 30.\" However, Marion does not provide any specific instructions for how the properties should be managed or how the income from the properties should be distributed. Question: Which of the following issues is most critical in this case to ensure the trust is properly constituted?", "question": "Marion is a wealthy businesswoman who owns several investment properties. She writes in her will: \"Upon my death, I give all my properties to my trustees to hold for my grandchildren, subject to the following conditions: the properties shall be managed for the benefit of the grandchildren until they reach the age of 30.\" However, Marion does not provide any specific instructions for how the properties should be managed or how the income from the properties should be distributed. Question: Which of the following issues is most critical in this case to ensure the trust is properly constituted?", "options": {"A": "Marion must provide specific instructions regarding the management of the properties", "B": "The trust deed should specify the market value of each property at the time of Marion’s death", "C": "The properties should be sold upon Marion’s death to avoid maintenance costs", "D": "Marion’s grandchildren need to be named in the deed for the trust to be valid", "E": "The trustees should have the discretion to decide how the properties are managed without further conditions"}, "answer": "A", "explanation": null}, {"id": 17, "topic": "Trusts", "stem": "Henry wishes to set up a trust over his collection of antique cars. He writes, \"I declare that my collection of 10 antique cars shall be held in trust for my son, Jacob, until he reaches the age of 30.\" Henry does not specify who will be the trustee or whether the cars should be insured or maintained.", "question": "However, he does want Jacob to have full control of the cars once he turns 30. Question: Which of the following should be the primary concern for Henry in order to ensure the trust is valid and enforceable?", "options": {"A": "The trust deed should identify a specific trustee to manage the cars until Jacob reaches the required age", "B": "Henry needs to specify how the cars should be sold if they decrease in value before Jacob turns 30", "C": "Henry should ensure the cars are kept in a specific location, but there are no other requirements", "D": "The trust should allow Jacob to immediately take possession of the cars upon Henry’s death, without waiting for the age condition", "E": "The cars should be held in a separate account to ensure their preservation"}, "answer": "A", "explanation": null}, {"id": 18, "topic": "Trusts", "stem": "Sophie wishes to create a trust over her family estate to benefit her grandchildren. In her will, she states: \"I leave my estate, which includes my home, financial assets, and investments, to be held in trust for my grandchildren.\" Sophie does not specify the terms of the trust or the distribution of the estate, and there is no mention of a trustee. Question: What is the most pressing issue that Sophie must address to ensure the trust is properly constituted?", "question": "Sophie wishes to create a trust over her family estate to benefit her grandchildren. In her will, she states: \"I leave my estate, which includes my home, financial assets, and investments, to be held in trust for my grandchildren.\" Sophie does not specify the terms of the trust or the distribution of the estate, and there is no mention of a trustee. Question: What is the most pressing issue that Sophie must address to ensure the trust is properly constituted?", "options": {"A": "She must appoint a trustee to manage the estate until the grandchildren are of age", "B": "The terms of the trust must include instructions for how the estate should be divided among the grandchildren", "C": "Sophie must specify how each type of asset should be managed, including her home and investments", "D": "Sophie must ensure that the estate is divided equally among the grandchildren immediately after her death", "E": "The trust must include instructions on how to handle taxes and other financial obligations"}, "answer": "A", "explanation": null}, {"id": 19, "topic": "Trusts", "stem": "Maria is the settlor of a trust she created for her two children, Mia and Leo. She declares in the trust deed that she leaves £200,000 in trust for her children, to be held until they each turn 30. The trust specifies that the trustee should pay the interest income from the fund to Mia and Leo as long as they are alive, and the principal will remain intact until they reach the age of 30.", "question": "However, Mia dies at the age of 28, before receiving her share of the principal. Question: Which of the following best describes the situation regarding Mia’s entitlement under this trust?", "options": {"A": "Mia's interest in the principal becomes vested immediately upon her reaching 30", "B": "Mia’s interest in the principal is contingent on her surviving until 30, so her share reverts to the settlor’s estate", "C": "Mia’s interest in the trust would pass to her children, based on the terms of the trust", "D": "Mia’s share of the principal is given to Leo as the surviving beneficiary", "E": "Mia’s entitlement is forfeited, and her share is distributed equally among the other beneficiaries"}, "answer": "B", "explanation": null}, {"id": 20, "topic": "Trusts", "stem": "James has set up a fixed interest trust, specifying that his estate of £500,000 should be distributed equally between his three children upon his death. The trust explicitly states that each child will receive a fixed sum.", "question": "However, the deed does not specify how the assets should be managed or invested during the interim period before distribution, and James dies before the trust is formally established. Question: Which of the following principles would most likely apply to this situation regarding James' fixed interest trust?", "options": {"A": "The trustee must use the funds to generate additional income for the beneficiaries, as no management provisions were included", "B": "The trustee has the discretion to manage the estate assets as they see fit, even though the deed is silent about the management of assets", "C": "The trustee must hold the funds without investing them, since the trust deed does not specify investment provisions", "D": "The children would receive the full value of the estate immediately upon James' death, regardless of asset management", "E": "The fixed interest trust is invalid, as no provisions for asset management can be left to discretion"}, "answer": "C", "explanation": null}, {"id": 21, "topic": "Trusts", "stem": "Tom creates a discretionary trust for his niece, Laura. He writes in the trust deed, \"I leave my savings of £100,000 in trust for Laura, to be distributed at my trustee’s discretion based on her needs.\" The trust specifies that the trustee can use their discretion to determine the amount and timing of distributions.", "question": "However, Tom does not define the criteria by which the trustee should judge Laura's needs. Question: What legal principle is most likely to be challenged in this situation?", "options": {"A": "Certainty of subject-matter", "B": "Certainty of objects (the beneficiaries)", "C": "Certainty of intention", "D": "Certainty of the trustee’s discretion", "E": "Certainty of when the distributions should be made"}, "answer": "D", "explanation": null}, {"id": 22, "topic": "Trusts", "stem": "Alison creates a trust, leaving £250,000 to her daughter, Sarah, with the condition that Sarah will receive the full amount only if she completes a master's degree program within five years. The trust deed stipulates that if Sarah does not meet the condition, the amount will revert to the settlor’s estate. Alison dies before Sarah completes the degree, and Sarah decides to pursue other interests, not completing her degree. Question: What happens to Sarah’s entitlement to the trust property in this scenario?", "question": "Alison creates a trust, leaving £250,000 to her daughter, Sarah, with the condition that Sarah will receive the full amount only if she completes a master's degree program within five years. The trust deed stipulates that if Sarah does not meet the condition, the amount will revert to the settlor’s estate. Alison dies before Sarah completes the degree, and Sarah decides to pursue other interests, not completing her degree. Question: What happens to Sarah’s entitlement to the trust property in this scenario?", "options": {"A": "Sarah receives the full £250,000 since she was named as the beneficiary in the trust", "B": "The trust becomes void because the condition of the degree completion was not met", "C": "Sarah’s entitlement to the trust property lapses, and the £250,000 reverts to the settlor’s estate", "D": "The trust is automatically modified, and the money is placed into a different type of trust", "E": "Sarah may still receive the property if she can demonstrate financial need"}, "answer": "C", "explanation": null}, {"id": 23, "topic": "Trusts", "stem": "David establishes a fixed interest trust for his children, specifying that his house will be held in trust for his three children. The trust deed states, “The house is to be equally divided among my three children, upon my death.” However, David does not specify the method by which the house should be sold or divided. Question: What legal issue may arise in this situation regarding David's fixed interest trust?", "question": "David establishes a fixed interest trust for his children, specifying that his house will be held in trust for his three children. The trust deed states, “The house is to be equally divided among my three children, upon my death.” However, David does not specify the method by which the house should be sold or divided. Question: What legal issue may arise in this situation regarding David's fixed interest trust?", "options": {"A": "The house must be divided immediately among the children, with no consideration for potential market value", "B": "The trustee must decide how to distribute the house, either by selling it or allowing the children to live in it", "C": "The house must remain in trust for the children’s use until they reach the age of 30", "D": "The house cannot be sold, as the trust requires a physical division of the property", "E": "The house is immediately divided into equal shares, and each child takes ownership outright"}, "answer": "B", "explanation": null}, {"id": 24, "topic": "Trusts", "stem": "Richard creates a trust to provide for his minor child, Sophie. The trust deed states, \"I leave £100,000 to be held in trust for Sophie, to be used for her benefit until she reaches the age of 25.\" Richard does not specify how the funds should be managed or if any income should be generated from the trust. Question: What must the trustee consider in order to manage the trust effectively, despite the lack of specific instructions in the trust deed?", "question": "Richard creates a trust to provide for his minor child, Sophie. The trust deed states, \"I leave £100,000 to be held in trust for Sophie, to be used for her benefit until she reaches the age of 25.\" Richard does not specify how the funds should be managed or if any income should be generated from the trust. Question: What must the trustee consider in order to manage the trust effectively, despite the lack of specific instructions in the trust deed?", "options": {"A": "The trustee must sell the assets immediately to ensure liquidity for future distributions", "B": "The trustee must invest the £100,000 to ensure it grows, to provide for Sophie’s future needs", "C": "The trustee can use the funds as they see fit, with no obligation to preserve or grow the principal", "D": "The trust funds should be placed into a separate account to avoid any risk of misuse", "E": "The trustee must wait until Sophie reaches 25 before making any decisions about managing the funds"}, "answer": "B", "explanation": null}, {"id": 25, "topic": "Trusts", "stem": "Eliza sets up a trust that specifies, \"I leave my estate to my son, Charlie, to be held in trust until he reaches 40 years of age.\" The trust deed also outlines that Charlie is entitled to annual income from the estate, but it does not specify how much income he should receive each year, nor does it state whether the estate should be sold or held in its current form. Question: Which of the following is the most likely issue with the constitution of Eliza’s trust?", "question": "Eliza sets up a trust that specifies, \"I leave my estate to my son, Charlie, to be held in trust until he reaches 40 years of age.\" The trust deed also outlines that Charlie is entitled to annual income from the estate, but it does not specify how much income he should receive each year, nor does it state whether the estate should be sold or held in its current form. Question: Which of the following is the most likely issue with the constitution of Eliza’s trust?", "options": {"A": "The trust may fail due to the lack of specificity regarding the annual income to be distributed", "B": "The trust will be valid, as the terms of the trust deed are sufficient to ensure a distribution", "C": "The trust requires that the estate be sold immediately to generate liquid funds for Charlie’s annual income", "D": "Charlie is automatically entitled to the full value of the estate upon Eliza’s death", "E": "The trustee is required to divide the estate into equal shares and distribute them directly to Charlie"}, "answer": "A", "explanation": null}, {"id": 26, "topic": "Trusts", "stem": "Lucy sets up a trust with the condition that the principal amount of the trust fund should only be distributed once her grandchild, Hannah, reaches the age of 30.", "question": "However, the trust deed does not mention any provisions for income distribution while the trust is in effect. Question: What is the most likely issue with this trust’s constitution?", "options": {"A": "The trust will fail because it does not specify how the income should be distribu ted to Hannah", "B": "The trust must be dissolved after 5 years to ensure a distribution of funds", "C": "The trust deed must specify how income generated from the trust property is to be allocated", "D": "Hannah’s entitlement to the principal is immediate, despite the age condition", "E": "The trust can operate without distributing income, as long as the principal is preserved for Hannah"}, "answer": "C", "explanation": null}, {"id": 27, "topic": "Trusts", "stem": "Freddie has set up a discretionary trust for his grandchildren. The trust deed states, \"I leave £200,000 in trust to be used for the education of my grandchildren, to be distributed at the trustee’s discretion.\" However, the deed does not define the criteria for when or how the trustee should decide to make a distribution. Question: Which of the following issues may arise concerning the discretionary nature of this trust?", "question": "Freddie has set up a discretionary trust for his grandchildren. The trust deed states, \"I leave £200,000 in trust to be used for the education of my grandchildren, to be distributed at the trustee’s discretion.\" However, the deed does not define the criteria for when or how the trustee should decide to make a distribution. Question: Which of the following issues may arise concerning the discretionary nature of this trust?", "options": {"A": "The trustee’s discretion is too broad, leading to uncertainty in deciding how the funds should be used", "B": "The trust must be enforced by the court if the trustee fails to distribute funds regularly", "C": "The trustee cannot use their discretion to decide the amount, as the deed specifies an exact sum", "D": "The trust must be terminated if the beneficiaries reach a certain age, as set out in the deed", "E": "Freddie’s grandchildren must agree on how the money should be distributed"}, "answer": "A", "explanation": null}, {"id": 28, "topic": "Trusts", "stem": "James creates a charitable trust, specifying: \"I leave £500,000 to build a school in my hometown for disadvantaged children.\" The trust document indicates the school should serve \"disadvantaged children,\" but it does not provide specific criteria for identifying such children or detail how the school should be managed. Question: Which of the following is the primary issue that could challenge the validity of this charitable trust?", "question": "James creates a charitable trust, specifying: \"I leave £500,000 to build a school in my hometown for disadvantaged children.\" The trust document indicates the school should serve \"disadvantaged children,\" but it does not provide specific criteria for identifying such children or detail how the school should be managed. Question: Which of the following is the primary issue that could challenge the validity of this charitable trust?", "options": {"A": "The amount of money left in the trust is insufficient to build a school", "B": "The trust may fail due to a lack of certainty regarding the beneficiaries (the children)", "C": "The trust will be valid, as it benefits the public and is clearly charitable", "D": "The absence of details on the management of the school makes the trust invalid", "E": "The trust deed fails to specify whether the school should be private or public"}, "answer": "B", "explanation": null}, {"id": 29, "topic": "Trusts", "stem": "Anna establishes a non-charitable purpose trust, stating: \"I leave £50,000 to be used for the restoration of my family’s ancestral home.\" She does not name any i ndividuals to benefit from the trust or outline any conditions for the property’s restoration. Question: Which legal principle is most likely to invalidate Anna’s non-charitable purpose trust?", "question": "Anna establishes a non-charitable purpose trust, stating: \"I leave £50,000 to be used for the restoration of my family’s ancestral home.\" She does not name any i ndividuals to benefit from the trust or outline any conditions for the property’s restoration. Question: Which legal principle is most likely to invalidate Anna’s non-charitable purpose trust?", "options": {"A": "The absence of a specific charitable cause makes the trust i nvalid", "B": "Non-charitable purpose trusts are valid only if they benefit specific individuals", "C": "The trust is invalid due to the lack of an enforceable beneficiary", "D": "Non-charitable trusts must have specific objectives related to the maintenance of property", "E": "The trust must be validated by the court due to the lack of conditions for property restoration"}, "answer": "C", "explanation": null}, {"id": 30, "topic": "Trusts", "stem": "William writes a will stating, \"I leave £200,000 in trust to establish a memorial park in my town to commemorate my late wife, to be open to the public.\" However, the will does not define what exactly the park should look like or how the funds should be managed for its construction. Question: What is the most likely issue with the creation of this charitable trust?", "question": "William writes a will stating, \"I leave £200,000 in trust to establish a memorial park in my town to commemorate my late wife, to be open to the public.\" However, the will does not define what exactly the park should look like or how the funds should be managed for its construction. Question: What is the most likely issue with the creation of this charitable trust?", "options": {"A": "The trust may be challenged due to a lack of clarity about the specific use of the money", "B": "The trust is automatically valid as it serves a public benefit", "C": "The amount of money left is insufficient to build a public park", "D": "The trust must specify who will manage the park’s construction, or it will fail", "E": "The trustee must ensure that the memorial park is established with specific requirements outlined by William"}, "answer": "A", "explanation": null}, {"id": 31, "topic": "Trusts", "stem": "Richard sets up a charitable trust in his will, stating: \"I leave £1 million to be used to promote the welfare of animals in need.\" However, Richard does not specify which animal organizations should benefit or provide any criteria for how the funds should be distributed. Question: What issue is most likely to arise in relation to Richard’s charitable trust?", "question": "Richard sets up a charitable trust in his will, stating: \"I leave £1 million to be used to promote the welfare of animals in need.\" However, Richard does not specify which animal organizations should benefit or provide any criteria for how the funds should be distributed. Question: What issue is most likely to arise in relation to Richard’s charitable trust?", "options": {"A": "The trust may fail due to the lack of clarity about which animals are to be helped", "B": "The trust will be valid because it benefits animals, a charitable cause", "C": "The trust must specify the specific animal welfare organization to benefit", "D": "The trust must be dissolved if there are no animal welfare organizations in the area", "E": "The trustee must decide how to distribute the funds, and the public will have no say"}, "answer": "B", "explanation": null}, {"id": 32, "topic": "Trusts", "stem": "Carla wishes to establish a non-charitable purpose trust, stating: \"I leave £100,000 in trust for the care and maintenance of my pet dog, Rex, to ensure he is well cared for after my death.\" The trust document does not name any person to enforce the trust, and Carla does not provide any guidelines for how the money should be managed. Question: Which of the following issues may make this trust invalid?", "question": "Carla wishes to establish a non-charitable purpose trust, stating: \"I leave £100,000 in trust for the care and maintenance of my pet dog, Rex, to ensure he is well cared for after my death.\" The trust document does not name any person to enforce the trust, and Carla does not provide any guidelines for how the money should be managed. Question: Which of the following issues may make this trust invalid?", "options": {"A": "The trust fails because it does not have a specific charitable purpose", "B": "Non-charitable purpose trusts for pets are generally not enforceable by law", "C": "The amount of money left is insufficient to care for a pet after Carla’s death", "D": "The trustee must be specifically named in the document to manage the care of Rex", "E": "The trust will fail due to the lack of instructions for the pet’s care"}, "answer": "A", "explanation": null}, {"id": 33, "topic": "Trusts", "stem": "Thomas sets up a trust in his will to benefit a particular reli gious institution, stating: \"I leave my estate to establish a religious center in my town for the promotion of spiritual well-being.\" However, Thomas does not define what constitutes \"spiritual well -being,\" nor does he specify which religious group or community will benefit from the center. Question: What issue might arise in the creation of this charitable trust?", "question": "Thomas sets up a trust in his will to benefit a particular reli gious institution, stating: \"I leave my estate to establish a religious center in my town for the promotion of spiritual well-being.\" However, Thomas does not define what constitutes \"spiritual well -being,\" nor does he specify which religious group or community will benefit from the center. Question: What issue might arise in the creation of this charitable trust?", "options": {"A": "The trust may fail due to lack of certainty about the religious group or community to benefit", "B": "The trust must specifically identify the religious group to be valid", "C": "The trust will be invalid due to vagueness in defining the term \"spiritual well -being\"", "D": "The estate is insufficient to establish a religious center, so the trust will fail", "E": "The trust is valid because it benefits the public at large"}, "answer": "A", "explanation": null}, {"id": 34, "topic": "Trusts", "stem": "George sets up a non-charitable purpose trust to preserve the memory of his deceased wife, stating: \"I leave £50,000 in trust to be used to maintain the headstone at my wife’s grave.\" However, George does not name anyone to manage the maintenance of the headstone, nor does he specify how the funds should be allocated for maintenance. Question: What is the most likely issue with the constitution of this non-charitable purpose trust?", "question": "George sets up a non-charitable purpose trust to preserve the memory of his deceased wife, stating: \"I leave £50,000 in trust to be used to maintain the headstone at my wife’s grave.\" However, George does not name anyone to manage the maintenance of the headstone, nor does he specify how the funds should be allocated for maintenance. Question: What is the most likely issue with the constitution of this non-charitable purpose trust?", "options": {"A": "The trust may fail because non-charitable purpose trusts are generally invalid without a defined beneficiary", "B": "The trust must specify exactly how the funds should be used to maintain the headstone", "C": "The trust can only be valid if George’s family agrees on how the funds should be spent", "D": "The trust can be valid without an appointed trustee to manage the headstone’s maintenance", "E": "The trust must specify the timeframe in which the maintenance will take place"}, "answer": "A", "explanation": null}, {"id": 35, "topic": "Trusts", "stem": "Eleanor creates a charitable trust to fund medical research, specifying: \"I leave £300,000 to fund research into curing cancer.\" However, Eleanor does not define what type of research should be funded or which medical institutions will be involved in the research. Question: What issue may arise with the charitable trust established by Eleanor?", "question": "Eleanor creates a charitable trust to fund medical research, specifying: \"I leave £300,000 to fund research into curing cancer.\" However, Eleanor does not define what type of research should be funded or which medical institutions will be involved in the research. Question: What issue may arise with the charitable trust established by Eleanor?", "options": {"A": "The trust may fail because the purpose is too broad and lacks specificity regarding the research to be funded", "B": "The trust is valid as long as it benefits medical research in general", "C": "Eleanor must specify the medical institution that will benefit from the fund s", "D": "The trust must be established with a specific cancer research facility", "E": "The trust will automatically be void because medical research is not a charitable purpose"}, "answer": "A", "explanation": null}, {"id": 36, "topic": "Trusts", "stem": "Eleanor and Martin have been in a relationship for several years, and they deci de to buy a house together.", "question": "However, due to their differing financial situations, Martin contributes a larger portion of the down payment, while Eleanor contributes a smaller amount. They agree verbally that the house will be in both their names, but there is no written agreement specifying the proportions of ownership. After several years, the relationship ends, and Eleanor moves out. Eleanor claims that she is entitled to a 50% share of the house, while Martin insists that the proportional share should reflect their financial contributions. Question: In this situation, what is the most likely outcome regarding the beneficial ownership of the property?", "options": {"A": "The court will apply the presumption of a resulting trust and award Martin the greater share, reflecting his larger contribution", "B": "The court will apply a constructive trust based on the couple’s intentions, and split the property equally", "C": "The property will be considered a joint asset, and each party will retain an equal share, regardless of financial contributions", "D": "The court will hold that the property should be divided according to the initial verbal agreement of equal ownership", "E": "The property will be transferred to Eleanor entirely, as she is the female partner in the relationship"}, "answer": "A", "explanation": null}, {"id": 37, "topic": "Trusts", "stem": "Claire, a wealthy widow, decides to gift her family home to her daughter, Lily, while she is still alive. To do this, Claire transfers the property into Lily’s name but retains the right to live in the home for the rest of her life. After Claire’s death, the property is to be fully owned by Lily.", "question": "However, there is no formal agreement stating that the property is a gift, and Lily never makes any payments for the property, even though she is listed as the owner. Question: What is most likely to happen regarding the ownership of the family home upon Claire’s death?", "options": {"A": "The property will automatically belong to Claire’s estate as a gift was never formally established", "B": "The property will be treated as a resulting trust, with Claire retaining the beneficial ownership due to the lack of a clear intention of gift", "C": "The property will be divided between Claire’s children, with Lily receiving her share of the estate", "D": "The property will remain with Lily, who becomes the sole owner, as there was a clear intention to transfer ownership", "E": "Claire’s right to live in the home until her death will be seen as a reservation of interest, with Lily receiving only the remainder"}, "answer": "B", "explanation": null}, {"id": 38, "topic": "Trusts", "stem": "Sam and his father, Jim, decide to open a joint bank account. The account is intended to be used by both of them, but only Jim deposits any funds. Sam, however, never contributes to the account. Jim later passes away, and Sam claims ownership of the account as a joint owner. Jim’s other family members contest Sam’s claim, arguing that the account should form part of Jim’s estate because Sam never deposited money into it. Question: Which of the following is the most likely legal outcome concerning the bank account?", "question": "Sam and his father, Jim, decide to open a joint bank account. The account is intended to be used by both of them, but only Jim deposits any funds. Sam, however, never contributes to the account. Jim later passes away, and Sam claims ownership of the account as a joint owner. Jim’s other family members contest Sam’s claim, arguing that the account should form part of Jim’s estate because Sam never deposited money into it. Question: Which of the following is the most likely legal outcome concerning the bank account?", "options": {"A": "The account will automatically transfer to Sam, as he is listed as the joint account holder", "B": "The account will be treated as a resulting trust, with the funds reverting to Jim’s estate since Sam never contributed to the account", "C": "The account will be divided equally between Sam and Jim’s family, as there was no written agreement about ownership", "D": "Sam will only receive the funds if he can prove that Jim intended the account to be a gift", "E": "The funds in the account will be split based on the contributions of both parties, with Sam receiving a portion of the funds"}, "answer": "B", "explanation": null}, {"id": 39, "topic": "Trusts", "stem": "Eddie transfers ownership of his vacation home to his son, Dan, while retaining the right to use it for his lifetime. Eddie also keeps the property’s title in his name. Dan agrees to the transfer, but after Eddie’s death, there is ambiguity about whether the transfer was intended as a gift or as a transfer of the beneficial interest with Eddie retaining a life interest. Question: What is the most likely legal principle that will govern the transfer of the vacation home after Eddie’s death?", "question": "Eddie transfers ownership of his vacation home to his son, Dan, while retaining the right to use it for his lifetime. Eddie also keeps the property’s title in his name. Dan agrees to the transfer, but after Eddie’s death, there is ambiguity about whether the transfer was intended as a gift or as a transfer of the beneficial interest with Eddie retaining a life interest. Question: What is the most likely legal principle that will govern the transfer of the vacation home after Eddie’s death?", "options": {"A": "The property will be treated as a gift to Dan, but only after Eddie’s death", "B": "The property will result back to Eddie’s estate under a resulting trust, with Eddie’s beneficial interest preserved during his life", "C": "The vacation home will pass to Dan automatically as a life estate without further action required", "D": "The property will be considered an outright gift to Dan, with no conditions on its use", "E": "Eddie’s life interest will be terminated immediately upon his death, and the property will pass directly to Dan"}, "answer": "B", "explanation": null}, {"id": 40, "topic": "Trusts", "stem": "Alice, an elderly woman, transfers her house into the name of her daughter, Clara, but the title deed only mentions Clara as the owner. However, Clara never paid for the house, and Alice continues to live there. After Alice’s death, Clara claims the house as her own.", "question": "However, Alice’s other children argue that Clara should only receive the house if Alice explicitly intended to give it to her. Question: What is the most likely legal theory that will be applied to determine the ownership of the house?", "options": {"A": "The house will be treated as a resulting trust, and ownership will revert to Alice’s estate", "B": "The house will be regarded as a gift to Clara, since she is the sole legal owner of the title", "C": "The house will be split between Alice’s children, with Clara receiving only a portion", "D": "Clara’s claim to the house will be denied, and the property will go to Alice’s other children as part of the estate", "E": "Clara’s interest in the house will be confirmed, but her siblings will receive financial compensation for their loss"}, "answer": "A", "explanation": null}, {"id": 41, "topic": "Trusts", "stem": "Jessica transfers her savings account to her son, Brian, with the understanding that Brian will use the funds to pay for Jessica’s medical expenses.", "question": "However, Jessica never formally documents this arrangement, and after her death, Brian claims ownership of the account, while Jessica’s other children argue that the funds should be used for the purpose Jessica originally intended. Question: What is the most likely legal approach the court will take in determining the ownership of the account?", "options": {"A": "The account will be treated as a resulting trust, and the funds will revert to Jessica’s estate for distribution among her children", "B": "The account will be treated as a gift to Brian, since the funds were transferred to him during Jessica’s life", "C": "The account will be split equally among Jessica’s children, with Brian receiving his share of the estate", "D": "Brian will be required to use the funds for medical expenses as Jessica originally intended, under a constructive trust", "E": "Brian will be allowed to keep the funds as a gift, with no further obligations"}, "answer": "A", "explanation": null}, {"id": 42, "topic": "Trusts", "stem": "Jackie purchases a car in her name but tells her friend, Laura, that she intends to leave the car to her after her death. Jackie does not transfer legal ownership of the car to Laura during her lifetime, nor does she mention this intention in writing. Upon Jackie’s death, Laura claims the car as a gift, but Jackie’s family disputes this claim. Question: Which of the following is the most likely conclusion regarding the car’s ownership?", "question": "Jackie purchases a car in her name but tells her friend, Laura, that she intends to leave the car to her after her death. Jackie does not transfer legal ownership of the car to Laura during her lifetime, nor does she mention this intention in writing. Upon Jackie’s death, Laura claims the car as a gift, but Jackie’s family disputes this claim. Question: Which of the following is the most likely conclusion regarding the car’s ownership?", "options": {"A": "The car will automatically belong to Laura, as Jackie expressed an intention to give it to her", "B": "The car will result back to Jackie’s estate under a resulting trust since no legal transfer of ownership occurred during Jackie’s life", "C": "The car will be divided among Jackie’s family, with Laura receiving a portion based on Jackie’s wishes", "D": "Laura will be entitled to the car, as it was clearly Jackie’s intention to gift it to her", "E": "Jackie’s family will inherit the car, as no formal documentation was made regarding the gift"}, "answer": "B", "explanation": null}, {"id": 43, "topic": "Trusts", "stem": "Nina creates a trust in which she leaves her artwork collection to her daughter, Sarah. The trust deed specifies that the collection will be passed on to Sarah when she turns 30, but the artwork is transferred to Sarah’s name when Nina is still alive. Sarah, however, does not take any steps to preserve or manage the collection, leading to its depreciation over time. Nina’s other children argue that the artwork should revert to Nina’s estate because Sarah has not fulfilled the purpose of the trust. Question: What is the most likely legal outcome regarding the artwork collection?", "question": "Nina creates a trust in which she leaves her artwork collection to her daughter, Sarah. The trust deed specifies that the collection will be passed on to Sarah when she turns 30, but the artwork is transferred to Sarah’s name when Nina is still alive. Sarah, however, does not take any steps to preserve or manage the collection, leading to its depreciation over time. Nina’s other children argue that the artwork should revert to Nina’s estate because Sarah has not fulfilled the purpose of the trust. Question: What is the most likely legal outcome regarding the artwork collection?", "options": {"A": "The artwork will be treated as a resulting trust, and the collection will return to Nina’s estate due to Sarah’s failure to manage it properly", "B": "Sarah will inherit the artwork outright, even though she did not manage it properly", "C": "The artwork will be divided between Nina’s children, with Sarah receiving a portion based on Nina’s original wishes", "D": "Sarah will be required to sell the artwork and distribute the proceeds to Nina’s estate", "E": "The artwork will remain with Sarah, but she will be required to compensate Nina’s estate for its depreciation"}, "answer": "A", "explanation": null}, {"id": 44, "topic": "Trusts", "stem": "Rachel and Tom are a married couple who jointly purchase a family home. Tom contributes 60% of the purchase price, while Rachel contributes the remaining 40%.", "question": "However, their joint ownership agreement is informal, and no written contract formalizes their respective shares. After several years, when their relationship breaks down, Rachel claims that she is entitled to half of the property, while Tom argues that his larger financial contribution should entitle him to a greater share. Question: What is the most likely outcome regarding the beneficial ownership of the family home?", "options": {"A": "The property will be divided equally, as both are joint owners, and the law assumes an equal split unless specified otherwise", "B": "The property will be divided based on a resulting trust, with Tom entitled to a larger share reflecting his financial contribution", "C": "Rachel will receive full ownership of the property as she is the female spouse", "D": "The property will be divided equally as a constructive trust, with no regard to the financial contributions", "E": "The court will appoint an independent trustee to assess the appropriate share each party should receive"}, "answer": "B", "explanation": null}, {"id": 45, "topic": "Trusts", "stem": "Chris and Maria, an unmarried couple, buy a house together. Chris contributes 70% of the purchase price, while Maria contributes 30%. The title deed lists both their names as joint owners. After a few years, Chris and Maria separate, and Chris claims that, given his larger financial contribution, he should be entitled to a larger share of the property. Maria argues that they should split the property equally, as they are both named as joint owners. Question: What legal principle will most likely apply to determine the division of the property?", "question": "Chris and Maria, an unmarried couple, buy a house together. Chris contributes 70% of the purchase price, while Maria contributes 30%. The title deed lists both their names as joint owners. After a few years, Chris and Maria separate, and Chris claims that, given his larger financial contribution, he should be entitled to a larger share of the property. Maria argues that they should split the property equally, as they are both named as joint owners. Question: What legal principle will most likely apply to determine the division of the property?", "options": {"A": "The property will be divided equally, as both are joint owners, regardless of their financial contributions", "B": "The property will be treated as a resulting trust, with Chris receiving a larger share reflecting his financial contribution", "C": "Maria will be entitled to the majority of the property, as the law favors female spouses", "D": "The property will be divided according to the constructive trust principle, based on the intention of the parties", "E": "The property will be sold, and the proceeds will be split equally between Chris and Maria"}, "answer": "B", "explanation": null}, {"id": 46, "topic": "Trusts", "stem": "Claire and John purchase a family home together. John contributes 80% of the down payment, while Claire contributes 20%. The couple does not formalize their respective shares in writing. After several years, they separate, and Claire asserts that she should receive half of the property, regardless of her smaller financial contribution, because the property was intended for both of them equally. John, on the other hand, claims that his larger financial contribution entitles him to a greater share of the property. Question: What is the most likely outcome in this situation?", "question": "Claire and John purchase a family home together. John contributes 80% of the down payment, while Claire contributes 20%. The couple does not formalize their respective shares in writing. After several years, they separate, and Claire asserts that she should receive half of the property, regardless of her smaller financial contribution, because the property was intended for both of them equally. John, on the other hand, claims that his larger financial contribution entitles him to a greater share of the property. Question: What is the most likely outcome in this situation?", "options": {"A": "The property will be divided equally, as the couple did not formalize an agreement and both are named joint owners", "B": "The property will be held in a resulting trust, with John receiving a larger share reflecting his financial contribution", "C": "The property will be divided based on a constructive trust, with the division reflecting the couple’s intentions", "D": "Claire will receive half the property, regardless of the financial contributions", "E": "The court will sell the property and divide the proceeds equally between the parties"}, "answer": "B", "explanation": null}, {"id": 47, "topic": "Trusts", "stem": "Jessica and her partner, Mark, purchase a house together. Jessica contributes 60% of the purchase price, while Mark contributes the remaining 40%. After a few years, they separate, and Jessica claims that she should receive a larger share of the property due to her greater financial contribution. Mark argues that they should split the property equally, as both names are on the title deed. Question: What is the most likely legal outcome in this case?", "question": "Jessica and her partner, Mark, purchase a house together. Jessica contributes 60% of the purchase price, while Mark contributes the remaining 40%. After a few years, they separate, and Jessica claims that she should receive a larger share of the property due to her greater financial contribution. Mark argues that they should split the property equally, as both names are on the title deed. Question: What is the most likely legal outcome in this case?", "options": {"A": "The property will be divided equally, as both names are on the title deed", "B": "The property will be divided based on a resulting trust, with Jessica receiving a larg er share based on her financial contribution", "C": "The property will be treated as a constructive trust, with both parties sharing the property equally", "D": "Mark will receive the full ownership of the property, as the property is considered a joint asset", "E": "Jessica will receive full ownership of the property, as she made the larger financial contribution"}, "answer": "B", "explanation": null}, {"id": 48, "topic": "Trusts", "stem": "Tom and Anne, an unmarried couple, buy a house together. Tom contributes 75% of the down payment, and Anne contributes 25%. Although the title deed lists both of their names, they never formalize their respective shares. Several years later, when they separate, Tom argues that he should receive a larger share of the property based on his financial contribution, while Anne claims that the property should be divided equally. Question: What is the most likely principle that will apply to determine the division of the property?", "question": "Tom and Anne, an unmarried couple, buy a house together. Tom contributes 75% of the down payment, and Anne contributes 25%. Although the title deed lists both of their names, they never formalize their respective shares. Several years later, when they separate, Tom argues that he should receive a larger share of the property based on his financial contribution, while Anne claims that the property should be divided equally. Question: What is the most likely principle that will apply to determine the division of the property?", "options": {"A": "The property will be divided equally, as both parties are joint owners of the title", "B": "The property will be divided based on a resulting trust, with Tom receiving a larger share due to his financial contribution", "C": "The property will be treated as a constructive trust, with both parties entitled to equal shares regardless of their contributions", "D": "Tom will receive full ownership of the property, as he contributed the majority of the down payment", "E": "The property will be sold, and the proceeds will be split equally between the parties"}, "answer": "B", "explanation": null}, {"id": 49, "topic": "Trusts", "stem": "Sarah and her partner, Richard, purchase a house together. Sarah contributes 50% of the purchase price, and Richard contributes the remaining 50%.", "question": "However, Richard is responsible for paying the mortgage and maintaining the property, while Sarah contributes in other ways, such as maintaining the garden and paying for utilities. After their separation, they disagree on how to divide the property, with Sarah claiming an equal share, while Richard argues that his larger financial contributions should entitle him to a larger share. Question: What is the most likely legal conclusion regarding the division of the property?", "options": {"A": "The property will be divided equally, as both parties contributed equally to the purchase price", "B": "The property will be held in a resulting trust, with Richard receiving a larger share reflecting his mortgage payments", "C": "The property will be divided based on a constructive trust, with both parties entitled to equal shares", "D": "Richard will receive full ownership of the property due to his greater financial contributions", "E": "Sarah will receive a larger share due to her contribution to maintaining the property"}, "answer": "B", "explanation": null}, {"id": 50, "topic": "Trusts", "stem": "Alice and Bob buy a house together, with Alice contributing 70% of the purchase price and Bob contributing 30%. Although the title deed lists both names, they do not document their agreement regarding the division of the property. After a few years, Bob claims that the property should be divided equally, while Alice argues that she should receive a larger share based on her financial contribution. Question: What legal principle is most likely to apply in this situation?", "question": "Alice and Bob buy a house together, with Alice contributing 70% of the purchase price and Bob contributing 30%. Although the title deed lists both names, they do not document their agreement regarding the division of the property. After a few years, Bob claims that the property should be divided equally, while Alice argues that she should receive a larger share based on her financial contribution. Question: What legal principle is most likely to apply in this situation?", "options": {"A": "The property will be divided equally, as both names appear on the title deed", "B": "The property will be treated as a resulting trust, with Alice receiving a larger share based on her financial contribution", "C": "The property will be divided equally as a constructive trust, with no consideration for their financial contributions", "D": "Alice will receive full ownership of the property because of her larger financial contribution", "E": "Bob will receive full ownership of the property, as the law favors male spouses"}, "answer": "B", "explanation": null}, {"id": 51, "topic": "Trusts", "stem": "Anna and Kevin buy a family home together. Kevin contributes 90% of the purchase price, and Anna contributes the remaining 10%. The title deed lists both of their names, but they never formalize their respective ownership shares.", "question": "When their relationship breaks down, Kevin claims that he should receive a larger share of the property based on his larger financial contribution, while Anna insists that the property should be divided equally. Question: What is the most likely outcome when determining the beneficial ownership of the property?", "options": {"A": "The property will be divided equally, as both are named joint owners", "B": "The property will be divided based on a resulting trust, with Kevin receiving a larger share reflecting his financial contribution", "C": "Anna will receive full ownership of the property due to her smaller financial contribution", "D": "The property will be split equally as a constructive trust, regardless of financial contributions", "E": "Kevin will receive full ownership of the property, as his financial contribution is much larger"}, "answer": "B", "explanation": null}, {"id": 52, "topic": "Trusts", "stem": "David owns a piece of agricultural land, and he decides to transfer the property to his son, Robert, with the understanding that Robert will hold it in trust for the benefit of David’s grandchildren. David does not specify how the property should be managed or whether the land should be sold or retained. After David’s death, Robert is unsure whether he has full control over the land or if it must remain in trust for the grandchildren. Question: What is the most likely legal outcome regarding the management and ownership of the land?", "question": "David owns a piece of agricultural land, and he decides to transfer the property to his son, Robert, with the understanding that Robert will hold it in trust for the benefit of David’s grandchildren. David does not specify how the property should be managed or whether the land should be sold or retained. After David’s death, Robert is unsure whether he has full control over the land or if it must remain in trust for the grandchildren. Question: What is the most likely legal outcome regarding the management and ownership of the land?", "options": {"A": "Robert will be required to sell the land immediately, as the trust requires a sale to benefit the grandchildren", "B": "The land will be held in trust, with Robert serving as the trustee for the grandchildren’s benefit", "C": "The land will automatically pass to Robert, and the grandchildren will not be entitled to any interest in it", "D": "Robert will have to seek permission from the court to sell or manage the land, as there is no clear instruction in the trust", "E": "The land will be divided equally among the grandchildren, regardless of whether Robert retains ownership"}, "answer": "B", "explanation": null}, {"id": 53, "topic": "Trusts", "stem": "Lily owns a large estate consisting of both residential and agricultural land. She decides to create a trust, leaving her estate to her children with the stipulation that the agricultural land should remain in trust for future generations.", "question": "However, Lily does not specify who will manage the agricultural land or what the specific terms of the trust should be. Her children later disagree on how the land should be used or whether it should be sold. Question: Which legal principle is most likely to govern the management of Lily’s agricultural land after her death?", "options": {"A": "The agricultural land will be treated as part of Lily’s estate and divided equally amo ng her children", "B": "The agricultural land will be held in trust, with the children receiving income from its use but without authority to sell it", "C": "The agricultural land will be sold and the proceeds distributed equally among the children", "D": "The trust will automatically convert the agricultural land into residential property for family use", "E": "The children will need to appoint an independent trustee to manage and decide the use of the land"}, "answer": "A", "explanation": null}, {"id": 54, "topic": "Trusts", "stem": "John decides to create a trust for his property, stating that his estate, which includes a family home and a piece of commercial land, will be held in trust for his son, Henry. John explicitly wishes the commercial land to be developed and sold, with the proceeds divided among the beneficiaries.", "question": "However, John does not provide specific instructions regarding the family home and whether it should be sold or retained in trust. Question: What is the most likely outcome regarding the management of John’s estate after his death?", "options": {"A": "The family home will be automatically sold, and the proceeds will be divided equally among the beneficiaries", "B": "The family home will be retained in trust, and the commercial land will be developed and sold as directed", "C": "The commercial land will be held in trust for Henry’s benefit, and the fami ly home will be divided among John’s children", "D": "The family home will be sold immediately after John’s death, and the proceeds will be distributed according to John’s will", "E": "The trustees will have full discretion over whether the family home should be sol d or retained, even without specific instructions"}, "answer": "C", "explanation": null}, {"id": 55, "topic": "Trusts", "stem": "Gina transfers a piece of residential land to her daughter, Emily, with the understanding that it will be held in trust for her grandchildren.", "question": "However, the land is not properly transferred into the name of a trustee, and there is no formal agreement specifying who should manage the land or how the land should be used. Question: Which of the following is most likely to result from this situation?", "options": {"A": "The land will automatically be considered as a gift to Emily, and she will have full control over it", "B": "The land will be treated as an express trust, with Emily holding it in trust for the grandchildren, even without a formal agreement", "C": "The land will be sold to pay for the maintenance of the estate, with the proceeds going to the grandchildren", "D": "The trust is invalid due to the lack of a formal trustee and written agreement, so the land will be returned to Gina’s estate", "E": "The land will remain in Emily’s name, but the grandchildren will be entitled to any income generated by it"}, "answer": "D", "explanation": null}, {"id": 56, "topic": "Trusts", "stem": "Rita owns a piece of agricultural land that she wishes to leave to her two children. She creates a trust, stating that the land should remain in trust for both children and that the land should only be sold under specific circumstances, such as for development.", "question": "However, Rita does not specify what constitutes a “development” or provide any other criteria for when the land may be sold. Question: How is the land most likely to be treated under the terms of the trust?", "options": {"A": "The land will remain in trust, and the children will be entitled to income from the land but not allowed to sell it", "B": "The land will be sold immediately, and the proceeds will be divided equally among the children", "C": "The land will be held in trust indefinitely, with the beneficiaries receiving a portion of the farming proceeds without the land being sold", "D": "The trustees will be required to sell the land immediately, as the conditions for the trust are too ambiguous", "E": "The trust will fail due to the lack of specific instructions on the land’s management and use"}, "answer": "E", "explanation": null}, {"id": 57, "topic": "Trusts", "stem": "Victor wishes to create a trust over his land, stating that it should be held in trust for his children and grandchildren. The trust states that the land should be used for farming purposes and the proceeds should be divided equally among the family.", "question": "However, Victor does not specify whether the land should be sold if farming becomes unprofitable or whether it should remain in trust indefinitely. Question: What is the most likely outcome concerning the land under Victor’s trust?", "options": {"A": "The land will be held in trust, and the proceeds from its farming will be divided equally among the beneficiaries", "B": "The land will be sold immediately, and the proceeds will be divided equally among the children and grandchildren", "C": "The land will remain in trust indefinitely, with the beneficiaries receiving a portion of the farming proceeds without the land being sold", "D": "The trustees will have full discretion to decide whether the land should be sold or retained based on its profitability", "E": "The land will be automatically transferred to the grandchildren after Victor’s death"}, "answer": "D", "explanation": null}, {"id": 58, "topic": "Trusts", "stem": "Helen owns a residential property and decides to create a trust where the house is to be held in trust for her children. She specifies that the house should not be sold during her children’s lifetimes and that it should only be used for residential purposes.", "question": "However, Helen does not specify who should manage the house or how the property should be maintained. Question: What is the most likely legal principle that will apply to the management and use of the house?", "options": {"A": "The house will be managed by the trustees, who will be responsible for ensuring it is kept in good condition and used for residential purposes", "B": "The house will be sold immediately after Helen’s death, and the proceeds will be distributed according to Helen’s will", "C": "The house will be divided into equal shares and given to Helen’s children immediately", "D": "The house will be transferred to the children as joint owners, with no further management needed", "E": "The children will be required to live in the house permanently until the property is sold"}, "answer": "A", "explanation": null}, {"id": 59, "topic": "Trusts", "stem": "Andrew creates a trust over his land, specifying that it should be held in trust for his children and grandchildren. The trust states that the land should be used for farming purposes and the proceeds should be divided equally among the family.", "question": "However, Andrew does not specify whether the land should be sold if farming becomes unprofitable or whether it should remain in trust indefinitely. Question: How is the land most likely to be treated under Andrew’s trust?", "options": {"A": "The land will be held in trust, and the proceeds from its farming will be divided equally among the beneficiaries", "B": "The land will be sold immediately, and the proceeds will be divided equally among the children and grandchildren", "C": "The land will remain in trust indefinitely, with the beneficiaries receiving a portion of the farming proceeds without the land being sold", "D": "The trustees will have full discretion to decide whether the land should be sold or retained based on its profitability", "E": "The land will be automatically transferred to the grandchildren after Andrew’s death"}, "answer": "C", "explanation": null}, {"id": 60, "topic": "Trusts", "stem": "John is appointed as a trustee for a family trust that holds a substantial investment portfolio. The trust’s deed outlines that the investments should be managed prudently, but it does not provide any specific instructions regarding the type of investments. Over time, John invests a large portion of the trust’s assets in a high-risk technology company that performs poorly, resulting in significant losses. Question: Which of the following is the most likely breach of duty in this scenario?", "question": "John is appointed as a trustee for a family trust that holds a substantial investment portfolio. The trust’s deed outlines that the investments should be managed prudently, but it does not provide any specific instructions regarding the type of investments. Over time, John invests a large portion of the trust’s assets in a high-risk technology company that performs poorly, resulting in significant losses. Question: Which of the following is the most likely breach of duty in this scenario?", "options": {"A": "John is liable for failing to diversify the investments, as trustees are required to act prudently and avoid excessive risk", "B": "John’s decision is valid as long as he made the investment with the intention to increase the portfolio’s value", "C": "John’s actions are justified because the technology company was an attractive investment opportunity at the time", "D": "John cannot be held liable, as the investment was in line with the settlor’s wishes to increase returns", "E": "John is not in breach of duty because he consulted with a financial advisor before making the investment"}, "answer": "A", "explanation": null}, {"id": 61, "topic": "Trusts", "stem": "Sarah is a trustee for a family trust that holds a piece of real estate. The property generates rental income, and the trust deed requires Sarah to distribute the income to the beneficiaries annually. Sarah, however, fails to distribute the rental income on time for two consecutive years, citing the need to accumulate funds for property maintenance. Question: What duty is most likely being breached by Sarah in this situation?", "question": "Sarah is a trustee for a family trust that holds a piece of real estate. The property generates rental income, and the trust deed requires Sarah to distribute the income to the beneficiaries annually. Sarah, however, fails to distribute the rental income on time for two consecutive years, citing the need to accumulate funds for property maintenance. Question: What duty is most likely being breached by Sarah in this situation?", "options": {"A": "Sarah is breaching the duty of care by not maintaining the property adequately", "B": "Sarah is breaching the duty to act impartially and not distribute income equitably among beneficiaries", "C": "Sarah is breaching the duty to act in good faith by withholding the rental income without proper justification", "D": "Sarah is breaching the duty to distribute income according to the trust deed’s terms", "E": "Sarah is not in breach, as she has the discretion to accumulate funds for maintenance"}, "answer": "D", "explanation": null}, {"id": 62, "topic": "Trusts", "stem": "Michael, a trustee, is overseeing a trust that holds a portfolio of stocks. The trust deed specifies that the stocks should be held long-term for capital growth.", "question": "However, Michael decides to sell a large portion of the stocks to take advantage of a short-term market rise and secure immediate profits, despite the deed’s requirement for long-term holding. Question: What duty is Michael most likely breaching in this situation?", "options": {"A": "Michael is breaching the duty to diversify investments", "B": "Michael is breaching the duty to act according to the trust deed’s specific instructions regarding investment strategies", "C": "Michael is breaching the duty of loyalty by acting in his own interest rather than the beneficiaries’", "D": "Michael is breaching the duty to act impartially, as the sale benefits one beneficiary more than others", "E": "Michael is not in breach, as he has the discretion to make such investment decisions"}, "answer": "B", "explanation": null}, {"id": 63, "topic": "Trusts", "stem": "Emily is a trustee of a trust that holds a valuable painting. The trust deed specifies that the painting should be preserved for the beneficiaries and not sold. Emily, however, is approached with a lucrative offer to sell the painting and decides to sell it, thinking the proceeds could benefit the beneficiaries. Question: What duty is most likely being breached by Emily?", "question": "Emily is a trustee of a trust that holds a valuable painting. The trust deed specifies that the painting should be preserved for the beneficiaries and not sold. Emily, however, is approached with a lucrative offer to sell the painting and decides to sell it, thinking the proceeds could benefit the beneficiaries. Question: What duty is most likely being breached by Emily?", "options": {"A": "Emily is breaching the duty to act impartially by not considering the beneficiaries’ interests equally", "B": "Emily is breaching the duty to preserve trust property and act in accordance with the trust deed’s instructions", "C": "Emily is breaching the duty of loyalty by selling the painting for her own personal gain", "D": "Emily is breaching the duty of care by failing to assess the potential impact of the sale on the beneficiaries", "E": "Emily is not in breach, as selling the painting aligns with her judgment of the trust’s best interests"}, "answer": "B", "explanation": null}, {"id": 64, "topic": "Trusts", "stem": "Karen is a trustee for a charitable trust set up to support environmental causes. The trust deed allows Karen discretion in how funds are allocated, but she must act in the best interest of the charity’s objectives. Karen uses some of the trust funds to purchase land for development, arguing that it will generate additional revenue for the charity’s work. Question: Which of the following best describes Karen’s breach of duty, if any?", "question": "Karen is a trustee for a charitable trust set up to support environmental causes. The trust deed allows Karen discretion in how funds are allocated, but she must act in the best interest of the charity’s objectives. Karen uses some of the trust funds to purchase land for development, arguing that it will generate additional revenue for the charity’s work. Question: Which of the following best describes Karen’s breach of duty, if any?", "options": {"A": "Karen is not in breach, as she is acting in good faith to generate funds for the charity", "B": "Karen is breaching the duty to act in accordance with the trust’s charitable purpose, as the land purchase contradicts the charity’s objectives", "C": "Karen is breaching the duty of impartiality, as the land purchase benefits some beneficiaries more than others", "D": "Karen is breaching the duty to act prudently, as investing in land development is a high-risk endeavor for the charity", "E": "Karen is not in breach, as she has discretion over how the funds are spent"}, "answer": "B", "explanation": null}, {"id": 65, "topic": "Trusts", "stem": "Tom is a trustee for a family trust that holds a valuable collection of art. The trust deed specifies that the art collection should be preserved and kept for the enjoyment of the beneficiaries.", "question": "However, Tom, recognizing the high value of the art, decides to sell some pieces and invest the proceeds in a real estate portfolio. Question: What duty is Tom breaching in this situation?", "options": {"A": "Tom is breaching the duty to preserve the trust property in line with the settlor’s intentions", "B": "Tom is breaching the duty to diversify the trust’s investments", "C": "Tom is breaching the duty of loyalty, as the sale benefits his personal interests rather than those of the beneficiaries", "D": "Tom is breaching the duty to act impartially, as he is favoring his own judgment over the trust’s objectives", "E": "Tom is not in breach, as the trust deed allows him to make investment decisions for the benefit of the beneficiaries"}, "answer": "A", "explanation": null}, {"id": 66, "topic": "Trusts", "stem": "Barbara is a trustee for a trust that holds a portfolio of bonds and other fixed -income securities. The trust deed requires that the assets be managed in a conservative and lowrisk manner. Barbara, however, makes an investment in high-yield, high-risk bonds, which leads to significant gains initially but also exposes the trust to potential losses. Question: Which duty is Barbara most likely breaching in this situation?", "question": "Barbara is a trustee for a trust that holds a portfolio of bonds and other fixed -income securities. The trust deed requires that the assets be managed in a conservative and lowrisk manner. Barbara, however, makes an investment in high-yield, high-risk bonds, which leads to significant gains initially but also exposes the trust to potential losses. Question: Which duty is Barbara most likely breaching in this situation?", "options": {"A": "Barbara is breaching the duty to diversify investments by concentrating the portfol io in high-risk securities", "B": "Barbara is breaching the duty of care, as the investment in high-risk bonds violates the trust’s low-risk requirements", "C": "Barbara is breaching the duty of loyalty by making a risky investment that primarily benefits her personally", "D": "Barbara is breaching the duty to act impartially, as her investment decision favors one beneficiary over others", "E": "Barbara is not in breach, as she is authorized to make riskier investments to benefit the beneficiaries"}, "answer": "B", "explanation": null}, {"id": 67, "topic": "Trusts", "stem": "Peter is a trustee for a trust that includes a rental property. The trust deed specifies that the property should be used for residential purposes only, and income generated from the rental should be distributed to the beneficiaries annually. Peter decides to lease the property to a commercial entity for higher rent, despite the trust deed’s residential use requirement. Question: What duty is Peter most likely breaching in this scenario?", "question": "Peter is a trustee for a trust that includes a rental property. The trust deed specifies that the property should be used for residential purposes only, and income generated from the rental should be distributed to the beneficiaries annually. Peter decides to lease the property to a commercial entity for higher rent, despite the trust deed’s residential use requirement. Question: What duty is Peter most likely breaching in this scenario?", "options": {"A": "Peter is breaching the duty to act impartially by favoring one beneficiary over the others with the commercial lease", "B": "Peter is breaching the duty of loyalty by acting in his own interest, as the commercial lease benefits him personally", "C": "Peter is breaching the duty to act in accordance with the trust deed’s terms regarding the use of the property", "D": "Peter is breaching the duty of care by failing to maintain the property adequately for residential use", "E": "Peter is not in breach, as commercial leases are often more lucrative and beneficial to the trust"}, "answer": "C", "explanation": null}, {"id": 68, "topic": "Trusts", "stem": "Janet is a trustee for a trust holding shares in a technology company. The trust deed specifies that the shares should be held for long-term capital growth. Janet, seeing the opportunity for short-term gains, decides to sell a portion of the shares and invest in a new tech startup that promises quick profits. Question: What duty is Janet most likely breaching in this case?", "question": "Janet is a trustee for a trust holding shares in a technology company. The trust deed specifies that the shares should be held for long-term capital growth. Janet, seeing the opportunity for short-term gains, decides to sell a portion of the shares and invest in a new tech startup that promises quick profits. Question: What duty is Janet most likely breaching in this case?", "options": {"A": "Janet is breaching the duty to diversify the investments, as the tech startup is too similar to the existing shares", "B": "Janet is breaching the duty of loyalty, as the decision to sell the shares is made to benefit her personal financial situation", "C": "Janet is breaching the duty to act in accordance with the trust deed’s instructions regarding long-term capital growth", "D": "Janet is breaching the duty to act prudently by investing in a speculative startup rather than maintaining the long-term investment", "E": "Janet is not in breach, as she has the discretion to make investment decisions based on the market"}, "answer": "C", "explanation": null}, {"id": 69, "topic": "Trusts", "stem": "John, a trustee for a family trust, invests a significant portion of the trust’s assets in highrisk stocks without the approval of the beneficiaries or the settlor. The stocks lose value, resulting in substantial financial loss for the trust. The beneficiaries are now seeking to hold John liable for the loss. Question: Which of the following best describes John’s breach of duty?", "question": "John, a trustee for a family trust, invests a significant portion of the trust’s assets in highrisk stocks without the approval of the beneficiaries or the settlor. The stocks lose value, resulting in substantial financial loss for the trust. The beneficiaries are now seeking to hold John liable for the loss. Question: Which of the following best describes John’s breach of duty?", "options": {"A": "John is in breach of the duty to act in good faith, as he failed to act with the best interests of the beneficiaries in mind", "B": "John is in breach of the duty of care, as he failed to act prudently by making a highrisk investment contrary to the trust’s terms", "C": "John is in breach of the duty to preserve trust property, as the loss could have been avoided with better decision-making", "D": "John is not in breach, as the loss was due to market condi tions and was beyond his control", "E": "John is in breach of the duty to diversify investments, as he concentrated the trust’s assets in high-risk stocks"}, "answer": "B", "explanation": null}, {"id": 70, "topic": "Trusts", "stem": "Helen, the trustee of a charitable trust, decides to loan a significant amount of the trust’s funds to a close family member at an interest rate that is significantly lower than the market rate. The loan is not authorized by the trust deed, and the loan recipient is unable to repay the funds, resulting in a loss to the trust. Question: What is the most likely consequence of Helen’s actions?", "question": "Helen, the trustee of a charitable trust, decides to loan a significant amount of the trust’s funds to a close family member at an interest rate that is significantly lower than the market rate. The loan is not authorized by the trust deed, and the loan recipient is unable to repay the funds, resulting in a loss to the trust. Question: What is the most likely consequence of Helen’s actions?", "options": {"A": "Helen is liable for the full amount of the loss, as her decision to lend the trust funds to a family member without proper authorization constitutes a breach of trust", "B": "Helen is not liable, as she was acting in good faith to help a family member", "C": "Helen is liable only for the portion of the loan that was not repaid", "D": "Helen is not liable, as the charitable trust is immune from claims of breach of trust", "E": "Helen is liable only if the beneficiaries can prove the loan was made for her personal benefit"}, "answer": "A", "explanation": null}, {"id": 71, "topic": "Trusts", "stem": "Sarah, a trustee, uses trust funds to purchase property for the benefit of the trust’s beneficiaries.", "question": "However, she does not consult with the other trustees or beneficiaries about the purchase. The property turns out to be overpriced and a poor investment, leading to a significant loss for the trust. Question: What is the most likely consequence for Sarah’s actions?", "options": {"A": "Sarah is not liable, as she was acting within her discretion to manage the trust’s assets", "B": "Sarah is liable for the loss, as she failed to act in accordance with her duty to consult with other trustees and the beneficiaries regarding significant decisions", "C": "Sarah is liable only if the beneficiaries can prove the purchase was a personal benefit to her", "D": "Sarah is not liable, as the loss occurred despite her best efforts to make a good investment", "E": "Sarah is liable only if the other trustees approve of her decision"}, "answer": "B", "explanation": null}, {"id": 72, "topic": "Trusts", "stem": "Marcus is a trustee for a trust that holds significant shares in a technology company. Marcus decides to sell a portion of the trust’s shares to invest in real estate without consulting the beneficiaries or seeking professional advice. The real estate investment turns out to be a poor decision, resulting in a financial loss. Question: Which of the following best describes Marcus’s breach of trust?", "question": "Marcus is a trustee for a trust that holds significant shares in a technology company. Marcus decides to sell a portion of the trust’s shares to invest in real estate without consulting the beneficiaries or seeking professional advice. The real estate investment turns out to be a poor decision, resulting in a financial loss. Question: Which of the following best describes Marcus’s breach of trust?", "options": {"A": "Marcus is not in breach, as he has the discretion to make investment decisions for the trust", "B": "Marcus is in breach of the duty of loyalty, as he made the investment decision based on his own interests rather than those of the beneficiaries", "C": "Marcus is in breach of the duty to diversify, as he concentrated the trust’s assets in real estate without proper diversification", "D": "Marcus is in breach of the duty of care, as he failed to consult with the beneficiaries or seek professional advice before making the investment", "E": "Marcus is not in breach, as the loss was due to market conditions beyond his control"}, "answer": "D", "explanation": null}, {"id": 73, "topic": "Trusts", "stem": "Emma, the trustee of a family trust, invests in a series of high-risk stocks that result in the loss of a significant portion of the trust’s assets. The trust deed specifies that the investments should be made conservatively with a focus on long-term stability. Question: What is the most likely consequence of Emma’s actions?", "question": "Emma, the trustee of a family trust, invests in a series of high-risk stocks that result in the loss of a significant portion of the trust’s assets. The trust deed specifies that the investments should be made conservatively with a focus on long-term stability. Question: What is the most likely consequence of Emma’s actions?", "options": {"A": "Emma is liable for the loss, as she breached her duty of care by making high-risk investments contrary to the trust’s terms", "B": "Emma is not liable, as the loss was due to unforeseeable market conditions", "C": "Emma is liable only for the portion of the investments that were high-risk", "D": "Emma is not liable, as the trust deed gave her full discretion to make investment decisions", "E": "Emma is only liable if the beneficiaries can prove the investments were made for her personal benefit"}, "answer": "A", "explanation": null}, {"id": 74, "topic": "Trusts", "stem": "Brian, a trustee for a family trust, fails to make distributions to the beneficiaries for several years, even though the trust deed requires that income be distributed annually. Brian claims that he did not make distributions because the trust needed to accumulate funds for future investments. Question: What is the most likely consequence of Brian’s failure to make distributions?", "question": "Brian, a trustee for a family trust, fails to make distributions to the beneficiaries for several years, even though the trust deed requires that income be distributed annually. Brian claims that he did not make distributions because the trust needed to accumulate funds for future investments. Question: What is the most likely consequence of Brian’s failure to make distributions?", "options": {"A": "Brian is not liable, as he has discretion to accumulate funds for future investments", "B": "Brian is liable for the failure to make distributions, as the trust deed clearly requires annual income distribution to the beneficiaries", "C": "Brian is liable only if the beneficiaries request distributions in writing", "D": "Brian is not liable, as the trust deed allows him to determine when distributions are made", "E": "Brian is not liable, as the beneficiaries can elect to receive the income at a later date"}, "answer": "B", "explanation": null}, {"id": 75, "topic": "Trusts", "stem": "Anna is a trustee for a charitable trust that funds education. The trust deed specifies that the funds should only be used to support education-related projects.", "question": "However, Anna uses some of the funds to support an unrelated environmental cause, believing it aligns with the general values of the charity. Question: What is the most likely consequence of Anna’s actions?", "options": {"A": "Anna is liable for the breach of trust, as the funds were used for purposes outside the scope of the charitable trust’s terms", "B": "Anna is not liable, as environmental causes are generally in line with the trust’s general mission", "C": "Anna is liable only if the beneficiaries can prove the use of funds was not in the charity’s best interests", "D": "Anna is not liable, as the charity supports a wide range of causes, including environmental issues", "E": "Anna is not in breach, as she is authorized to decide how the funds should be used"}, "answer": "A", "explanation": null}, {"id": 76, "topic": "Trusts", "stem": "George, a trustee, invests the trust’s funds in a series of speculative high-return opportunities, believing that high rewards will benefit the trust’s beneficiaries.", "question": "However, these investments result in heavy losses, and the beneficiaries now seek to hold George accountable. Question: What is the most likely reason George would be held liable for the trust’s losses?", "options": {"A": "George is liable for the losses, as he did not diversify the trust’s investments sufficiently and acted contrary to the principle of prudent investing", "B": "George is not liable, as the investments were made with the best interests of the beneficiaries in mind", "C": "George is not liable, as the losses were due to market conditions and not his decisions", "D": "George is only liable if the beneficiaries prove that the losses were caused by his negligence", "E": "George is liable only if he did not consult with other trustees before making the investments"}, "answer": "A", "explanation": null}, {"id": 77, "topic": "Trusts", "stem": "Chloe is a trustee of a trust that holds real estate. She decides to sell one of the properties in the trust portfolio without consulting the beneficiaries, believing that the sale will benefit the trust’s assets.", "question": "However, the property was specifically designated to be kept in the trust for the beneficiaries’ enjoyment. Question: What is the most likely legal consequence of Chloe’s actions?", "options": {"A": "Chloe is not liable, as she acted in the best interests of the beneficiaries by improving the trust’s financial standing", "B": "Chloe is liable for the breach of trust, as she sold property that was explicitly designated for the beneficiaries’ enjoyment without consulting them", "C": "Chloe is not liable, as the sale was in line with the trust’s overall investment strategy", "D": "Chloe is liable only if the beneficiaries express dissatisfaction with the sale", "E": "Chloe is not liable, as the property was not directly mentioned in the trust deed"}, "answer": "B", "explanation": null}, {"id": 78, "topic": "Trusts", "stem": "James, the trustee of a family trust, decides to sell trust property without informing the beneficiaries, even though the trust deed specifically states that the property should be retained for the benefit of the family. The sale results in a financial loss to the trust. The beneficiaries are now seeking a remedy for the breach of trust. Question: Which remedy is most likely available to the beneficiaries in this scenario?", "question": "James, the trustee of a family trust, decides to sell trust property without informing the beneficiaries, even though the trust deed specifically states that the property should be retained for the benefit of the family. The sale results in a financial loss to the trust. The beneficiaries are now seeking a remedy for the breach of trust. Question: Which remedy is most likely available to the beneficiaries in this scenario?", "options": {"A": "The beneficiaries can seek an injunction to prevent James from further actions with the trust property", "B": "The beneficiaries can seek the recovery of the property or its equivalent value, along with any losses caused by the sale", "C": "The beneficiaries can request that James be removed as trustee but do not have a claim for compensation", "D": "The beneficiaries can seek a distribution of the remaining trust property", "E": "The beneficiaries can only seek monetary compensation for the breach"}, "answer": "B", "explanation": null}, {"id": 79, "topic": "Trusts", "stem": "Olivia, a trustee, breaches the trust by using trust funds for personal expenses, violating her duty of loyalty. The beneficiaries discover the breach and demand compensation for the losses incurred due to Olivia's actions. Question: What is the most likely remedy available to the beneficiaries in this case?", "question": "Olivia, a trustee, breaches the trust by using trust funds for personal expenses, violating her duty of loyalty. The beneficiaries discover the breach and demand compensation for the losses incurred due to Olivia's actions. Question: What is the most likely remedy available to the beneficiaries in this case?", "options": {"A": "The beneficiaries can seek an order requiring Olivia to return the misused funds and compensate the trust for any losses caused by her actions", "B": "The beneficiaries can only seek an injunction to prevent Olivia from acting further as trustee", "C": "The beneficiaries can remove Olivia as trustee but are not entitled to any compensation", "D": "The beneficiaries can seek to terminate the trust and divide the property", "E": "The beneficiaries can request that Olivia be personally punished for breaching the trust"}, "answer": "A", "explanation": null}, {"id": 80, "topic": "Trusts", "stem": "Sarah is a trustee of a charitable trust. She has made an investment in risky bonds without consulting other trustees or the beneficiaries. The bonds default, causing the trust to lose a substantial amount of money. The beneficiaries want to hold Sarah accountable for the loss. Question: What is the most likely remedy available to the beneficiaries in this case?", "question": "Sarah is a trustee of a charitable trust. She has made an investment in risky bonds without consulting other trustees or the beneficiaries. The bonds default, causing the trust to lose a substantial amount of money. The beneficiaries want to hold Sarah accountable for the loss. Question: What is the most likely remedy available to the beneficiaries in this case?", "options": {"A": "The beneficiaries can seek to have Sarah removed as trustee, but they cannot claim compensation for the losses", "B": "The beneficiaries can seek compensation for the losses caused by Sarah's imprudent investment decision", "C": "The beneficiaries can request that the bonds be returned to the trust, along with their original value", "D": "The beneficiaries can seek an injunction to prevent Sarah from making further investments", "E": "The beneficiaries can only seek a modification of the investment strategy for the trust"}, "answer": "B", "explanation": null}, {"id": 81, "topic": "Trusts", "stem": "Michael is a trustee for a family trust that includes several rental properties. He negligently fails to maintain the properties, resulting in their deterioration and a decrease in their value. The beneficiaries seek a remedy for the damages caused by Michael’s failure to maintain the properties. Question: Which remedy is most likely available to the beneficiaries in this situation?", "question": "Michael is a trustee for a family trust that includes several rental properties. He negligently fails to maintain the properties, resulting in their deterioration and a decrease in their value. The beneficiaries seek a remedy for the damages caused by Michael’s failure to maintain the properties. Question: Which remedy is most likely available to the beneficiaries in this situation?", "options": {"A": "The beneficiaries can seek compensation for the loss in property value and any other damages caused by Michael's negligence", "B": "The beneficiaries can seek to have the properties sold and the proceeds divided among the beneficiaries", "C": "The beneficiaries can only seek the removal of Michael as trustee, with no compensation for the damages", "D": "The beneficiaries can ask for the properties to be transferred to their names immediately", "E": "The beneficiaries can request that the properties be sold but cannot claim any compensation for the losses"}, "answer": "A", "explanation": null}, {"id": 82, "topic": "Trusts", "stem": "Amanda is the trustee of a family trust. She improperly distributes the trust assets to her own family members instead of the beneficiaries named in the trust deed. The beneficiaries now seek to recover their share of the trust property. Question: What is the most likely remedy available to the beneficiaries in this case?", "question": "Amanda is the trustee of a family trust. She improperly distributes the trust assets to her own family members instead of the beneficiaries named in the trust deed. The beneficiaries now seek to recover their share of the trust property. Question: What is the most likely remedy available to the beneficiaries in this case?", "options": {"A": "The beneficiaries can seek to recover the property or its equivalent value from Amanda or the individuals who received the improperly distributed assets", "B": "The beneficiaries can only ask for the removal of Amanda as trustee", "C": "The beneficiaries can request a re-distribution of the property, but they cannot claim compensation for the improper distributions", "D": "The beneficiaries can request that Amanda be personally punished for the breach of trust", "E": "The beneficiaries can seek an injunction to prevent further improper distributions, but cannot claim any compensation"}, "answer": "A", "explanation": null}, {"id": 83, "topic": "Trusts", "stem": "Oliver, the trustee of a family trust, negligently invests the trust’s funds in a business venture that ultimately fails. The beneficiaries seek compensation for the loss of value in the trust’s assets. Question: What is the most likely remedy available to the beneficiaries in this case?", "question": "Oliver, the trustee of a family trust, negligently invests the trust’s funds in a business venture that ultimately fails. The beneficiaries seek compensation for the loss of value in the trust’s assets. Question: What is the most likely remedy available to the beneficiaries in this case?", "options": {"A": "The beneficiaries can request that Oliver be personally fined for his negligence", "B": "The beneficiaries can seek compensation for the losses caused by Oliver’s negligence in managing the trust’s assets", "C": "The beneficiaries can ask for Oliver to be removed as trustee but cannot claim compensation for the losses", "D": "The beneficiaries can only ask for a change in the investment strategy going forward", "E": "The beneficiaries can seek to terminate the trust and divide the remaining assets"}, "answer": "B", "explanation": null}, {"id": 84, "topic": "Trusts", "stem": "Jack is a trustee for a charitable trust, and he invests a portion of the trust’s funds in high-risk securities without consulting other trustees. The investments result in significant losses, and the charity’s beneficiaries want to seek a remedy for the damages caused by Jack’s decision. Question: What is the most likely remedy available to the beneficiaries in this situation?", "question": "Jack is a trustee for a charitable trust, and he invests a portion of the trust’s funds in high-risk securities without consulting other trustees. The investments result in significant losses, and the charity’s beneficiaries want to seek a remedy for the damages caused by Jack’s decision. Question: What is the most likely remedy available to the beneficiaries in this situation?", "options": {"A": "The beneficiaries can ask for Jack to be personally penalized for his risky investment strategy", "B": "The beneficiaries can seek compensation for the losses caused by Jack’s imprudent investment decisions", "C": "The beneficiaries can request the trust’s assets be divided and distributed among them", "D": "The beneficiaries can only seek a re-evaluation of the trust’s investment policy", "E": "The beneficiaries can seek the removal of Jack as trustee but cannot cl aim compensation for the losses"}, "answer": "B", "explanation": null}, {"id": 85, "topic": "Trusts", "stem": "Jessica, a trustee for a family trust, fails to distribute income from the trust’s rental properties for several years. She justifies this by claiming the funds were needed to cover unexpected maintenance costs. The beneficiaries now demand compensation for the delay in receiving their distributions. Question: Which of the following is the most likely remedy for the beneficiaries in this case?", "question": "Jessica, a trustee for a family trust, fails to distribute income from the trust’s rental properties for several years. She justifies this by claiming the funds were needed to cover unexpected maintenance costs. The beneficiaries now demand compensation for the delay in receiving their distributions. Question: Which of the following is the most likely remedy for the beneficiaries in this case?", "options": {"A": "The beneficiaries can seek compensation for the delay in distribution, including interest on the unpaid amounts", "B": "The beneficiaries can seek the removal of Jessica as trustee but cannot claim compensation for the delay", "C": "The beneficiaries can only request that Jessica distribute the funds immediately but cannot seek any compensation", "D": "The beneficiaries can seek the sale of the rental properties to pay out their share of the distributions", "E": "The beneficiaries can ask for a re-distribution of the income from the trust’s properties, but no compensation can be claimed"}, "answer": "A", "explanation": null}, {"id": 86, "topic": "Trusts", "stem": "Nina is the trustee of a trust holding a collection of valuable art. She sells several pieces of the collection without consulting the beneficiaries, arguing that the funds are needed for other trust investments. The beneficiaries seek a remedy for the loss of the artwork. Question: What is the most likely remedy available to the beneficiaries?", "question": "Nina is the trustee of a trust holding a collection of valuable art. She sells several pieces of the collection without consulting the beneficiaries, arguing that the funds are needed for other trust investments. The beneficiaries seek a remedy for the loss of the artwork. Question: What is the most likely remedy available to the beneficiaries?", "options": {"A": "The beneficiaries can ask for the art pieces to be returned to the trust or seek compensation for their loss", "B": "The beneficiaries can request that Nina be fined for selling the artwork without their consent", "C": "The beneficiaries can seek to terminate the trust and distribute its assets equally among them", "D": "The beneficiaries can ask for Nina to be removed as trustee, but the proceeds from the sale cannot be recovered", "E": "The beneficiaries can ask for the art to be returned, but no further action can be taken against Nina"}, "answer": "A", "explanation": null}, {"id": 87, "topic": "Trusts", "stem": "Anna is the trustee of a trust created by her late father. The trust holds various assets for the benefit of Anna and her siblings. The trust deed provides for annual distributions to the beneficiaries, but Anna feels that the terms of the trust should be modified to allow for a larger share of the income to be distributed to her children, who are financially struggling. The beneficiaries, however, are not in agreement about the proposed change. Question: What is the most likely method that Anna could use to change the terms of the trust?", "question": "Anna is the trustee of a trust created by her late father. The trust holds various assets for the benefit of Anna and her siblings. The trust deed provides for annual distributions to the beneficiaries, but Anna feels that the terms of the trust should be modified to allow for a larger share of the income to be distributed to her children, who are financially struggling. The beneficiaries, however, are not in agreement about the proposed change. Question: What is the most likely method that Anna could use to change the terms of the trust?", "options": {"A": "Anna can unilaterally modify the terms of the trust, as she is the trustee and has full discretion", "B": "Anna can apply to the court for the variation of the trust under the \"variation of trusts\" procedure if the beneficiaries consent or if the court believes it is in the best interest of the beneficiaries", "C": "Anna can change the terms of the trust by simply notifying the beneficiaries in writing of the modification", "D": "Anna can only change the terms of the trust if her father’s original intentions are shown to be outdated", "E": "Anna cannot make any changes to the terms of the trust under any circumstances"}, "answer": "B", "explanation": null}, {"id": 88, "topic": "Trusts", "stem": "Brian is the trustee of a family trust, and the trust deed speci fies that the trust should exist for 50 years. After 30 years, the trust’s assets have significantly appreciated in value, and the beneficiaries are asking Brian to terminate the trust early and distribute the assets. Brian is unsure whether he has the authority to terminate the trust before the 50-year term stipulated in the deed. Question: Under what circumstances can Brian legally terminate the trust before the specified term ends?", "question": "Brian is the trustee of a family trust, and the trust deed speci fies that the trust should exist for 50 years. After 30 years, the trust’s assets have significantly appreciated in value, and the beneficiaries are asking Brian to terminate the trust early and distribute the assets. Brian is unsure whether he has the authority to terminate the trust before the 50-year term stipulated in the deed. Question: Under what circumstances can Brian legally terminate the trust before the specified term ends?", "options": {"A": "Brian can terminate the trust early if the beneficiaries agree and if the court confirms that the early termination will not harm any party", "B": "Brian can terminate the trust early as long as he is in agreement with the settlor’s wishes", "C": "Brian can terminate the trust early if he believes the trust’s terms are no longer necessary, regardless of the beneficiaries' wishes", "D": "Brian can terminate the trust only if the trust’s purpose has been fulfilled in full, irrespective of the terms set in the deed", "E": "Brian can terminate the trust early only if the settlor’s family agrees and signs a written waiver of the trust’s terms"}, "answer": "A", "explanation": null}, {"id": 89, "topic": "Trusts", "stem": "Liam is the trustee of a trust that was established by his grandfather. The trust deed specifies that the trust will last for 60 years and that its purpose is to provide for the education of Liam’s children and grandchildren.", "question": "However, as time has passed, Liam believes that the trust's purpose is no longer relevant, as the family’s financial situation has changed and the beneficiaries no longer need educational support. Liam wants to terminate the trust early and distribute its assets. Question: Which of the following is the most appropriate course of action for Liam to take to terminate the trust early?", "options": {"A": "Liam can unilaterally terminate the trust, as the family no longer requires the educational funds", "B": "Liam can apply to the court to vary or terminate the trust, showing that the trust’s purpose is no longer relevant and that early termination would benefit the beneficiaries", "C": "Liam can terminate the trust early as long as all the beneficiaries agree in writing", "D": "Liam can simply distribute the assets to the beneficiaries without court approval, since he is the trustee", "E": "Liam must wait until the full 60 years have passed before he can make any decisions regarding the trust’s termination Answers 1. A 2. C 3. C 4. D 5. A 6. A 7. A 8. A 9. B 10. A 11. B 12. A 13. B 14. A 15. B 16. A 17. A 18. A 19. B 20. C 21. D 22. C 23. B 24. B 25. A 26. C 27. A 28. B 29. C 30. A 31. A 32. B 33. A 34. A 35. A 36. A 37. A 38. B 39. B 40. B 41. A 42. A 43. B 44. A 45. B 46. B 47. B 48. B 49. B 50. B 51. B 52. B 53. B 54. A 55. C 56. D 57. E 58. D 59. A 60. C 61. A 62. D 63. B 64. B 65. B 66. A 67. B 68. C 69. C 70. B 71. A 72. B 73. D 74. A 75. B 76. A 77. A 78. B 79. B 80. A 81. B 82. A 83. A 84. B 85. B 86. A 87. A 88. B 89. A 90. B"}, "answer": "B", "explanation": null}]};
+
+// ─────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────
+const S = {
+    idx: 0,
+    answers: {},
+    timedMode: true,
+    secsLeft: 0,
+    tick: null,
+    started: false,
+    ended: false
+};
+
+// ─────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────
+(function init() {
+    const n = EXAM_DATA.questions.length;
+    const mins = Math.ceil(n * 1.7);
+    S.secsLeft = mins * 60;
+    document.title = EXAM_DATA.title;
+    document.getElementById('start-title').textContent = EXAM_DATA.title;
+    document.getElementById('hdr-title').textContent = EXAM_DATA.title;
+    document.getElementById('stat-q').textContent = n;
+    document.getElementById('stat-t').textContent = mins + 'm';
+})();
+
+// ─────────────────────────────────────────────
+//  TIMER
+// ─────────────────────────────────────────────
+function toggleTimer() {
+    S.timedMode = !S.timedMode;
+    document.getElementById('timer-toggle').classList.toggle('on', S.timedMode);
+    document.getElementById('timer-txt').textContent = S.timedMode ? 'On' : 'Off';
+}
+
+function startTimer() {
+    renderTimer();
+    S.tick = setInterval(() => {
+        S.secsLeft--;
+        renderTimer();
+        if (S.secsLeft <= 0) { clearInterval(S.tick); endExam(); }
+    }, 1000);
+}
+
+function renderTimer() {
+    const el = document.getElementById('timer');
+    const m = String(Math.floor(S.secsLeft / 60)).padStart(2,'0');
+    const s = String(S.secsLeft % 60).padStart(2,'0');
+    el.textContent = m + ':' + s;
+    const total = EXAM_DATA.questions.length * 1.7 * 60;
+    const ratio = S.secsLeft / total;
+    el.className = 'timer' + (ratio < 0.1 ? ' critical' : ratio < 0.25 ? ' warning' : '');
+}
+
+// ─────────────────────────────────────────────
+//  EXAM START
+// ─────────────────────────────────────────────
+function startExam() {
+    S.started = true;
+    show('exam-screen');
+    buildDots();
+    renderQ(0);
+    const timerEl = document.getElementById('timer');
+    if (!S.timedMode) { timerEl.style.display = 'none'; } else { startTimer(); }
+}
+
+// ─────────────────────────────────────────────
+//  NAVIGATION DOTS
+// ─────────────────────────────────────────────
+function buildDots() {
+    const nav = document.getElementById('q-nav');
+    nav.innerHTML = '';
+    EXAM_DATA.questions.forEach((_, i) => {
+        const d = document.createElement('div');
+        d.className = 'q-dot';
+        d.textContent = i + 1;
+        d.id = 'dot' + i;
+        d.onclick = () => renderQ(i);
+        nav.appendChild(d);
+    });
+    syncDots();
+}
+
+function syncDots() {
+    EXAM_DATA.questions.forEach((_, i) => {
+        const d = document.getElementById('dot' + i);
+        if (!d) return;
+        d.className = 'q-dot' +
+            (i === S.idx ? ' current' : S.answers[i] !== undefined ? ' answered' : '');
+    });
+}
+
+// ─────────────────────────────────────────────
+//  RENDER QUESTION
+// ─────────────────────────────────────────────
+function renderQ(idx) {
+    S.idx = idx;
+    const q = EXAM_DATA.questions[idx];
+    const n = EXAM_DATA.questions.length;
+
+    document.getElementById('q-num').textContent = 'Question ' + (idx + 1) + ' of ' + n;
+
+    const topicEl = document.getElementById('q-topic');
+    if (q.topic) { topicEl.textContent = q.topic; topicEl.style.display = ''; }
+    else topicEl.style.display = 'none';
+
+    const stemEl = document.getElementById('q-stem');
+    const qEl = document.getElementById('q-question');
+    function setStem(el, text, qIdx) {
+      if (hlState[qIdx]) { el.innerHTML = hlState[qIdx]; }
+      else { el.innerHTML = renderStemHtml(text); }
+    }
+    if (q.stem && q.question && q.stem !== q.question) {
+        setStem(stemEl, q.stem, idx); stemEl.style.display = '';
+        qEl.textContent = q.question;
+    } else if (q.stem) {
+        stemEl.style.display = 'none';
+        qEl.textContent = q.stem || q.question || '';
+    } else {
+        stemEl.style.display = 'none';
+        qEl.textContent = q.question || '';
+    }
+
+    // Options
+    const container = document.getElementById('options');
+    container.innerHTML = '';
+    ['A','B','C','D','E'].forEach(ltr => {
+        if (!q.options || !q.options[ltr]) return;
+        const div = document.createElement('div');
+        const sel = S.answers[idx] === ltr;
+        div.className = 'option' + (sel ? ' selected' : '');
+        div.id = 'opt' + ltr;
+        div.innerHTML =
+            '<div class="option-label">' + ltr + '</div>' +
+            '<div class="option-text">' + esc(q.options[ltr]) + '</div>';
+        div.onclick = () => pick(idx, ltr);
+        container.appendChild(div);
+    });
+
+    // Progress
+    const pct = Object.keys(S.answers).length / n * 100;
+    document.getElementById('progress-bar').style.width = pct + '%';
+
+    // Nav buttons
+    const prevBtn = document.getElementById('btn-prev');
+    const nextBtn = document.getElementById('btn-next');
+    prevBtn.disabled = idx === 0;
+    const isLast = idx === n - 1;
+    nextBtn.textContent = isLast ? 'End Exam' : 'Next →';
+    nextBtn.onclick = isLast ? confirmEnd : next;
+    nextBtn.className = 'btn ' + (isLast ? 'btn-danger' : 'btn-primary');
+
+    syncDots();
+    window.scrollTo(0, 0);
+}
+
+// ─────────────────────────────────────────────
+//  ANSWER SELECTION
+// ─────────────────────────────────────────────
+function pick(idx, ltr) {
+    if (S.ended) return;
+    S.answers[idx] = ltr;
+    ['A','B','C','D','E'].forEach(l => {
+        const el = document.getElementById('opt' + l);
+        if (el) el.className = 'option' + (l === ltr ? ' selected' : '');
+    });
+    const pct = Object.keys(S.answers).length / EXAM_DATA.questions.length * 100;
+    document.getElementById('progress-bar').style.width = pct + '%';
+    syncDots();
+}
+
+function prev() { if (S.idx > 0) renderQ(S.idx - 1); }
+function next() { if (S.idx < EXAM_DATA.questions.length - 1) renderQ(S.idx + 1); }
+
+// ─────────────────────────────────────────────
+//  END EXAM
+// ─────────────────────────────────────────────
+function confirmEnd() {
+    const unanswered = EXAM_DATA.questions.length - Object.keys(S.answers).length;
+    if (unanswered === 0) { endExam(); return; }
+    document.getElementById('modal-skip').textContent = unanswered;
+    document.getElementById('end-modal').classList.add('open');
+}
+function closeModal() { document.getElementById('end-modal').classList.remove('open'); }
+function endExam() {
+    closeModal();
+    clearInterval(S.tick);
+    S.ended = true;
+    calcResults();
+}
+
+// ─────────────────────────────────────────────
+//  RESULTS
+// ─────────────────────────────────────────────
+function calcResults() {
+    const qs = EXAM_DATA.questions;
+    const hasKey = qs.some(q => q.answer !== null && q.answer !== undefined);
+    let correct = 0, wrong = 0;
+
+    qs.forEach((q, i) => {
+        if (S.answers[i] === undefined || !hasKey || q.answer === null) return;
+        if (S.answers[i] === q.answer) correct++; else wrong++;
+    });
+
+    const answered = Object.keys(S.answers).length;
+    const skipped = qs.length - answered;
+    const pct = hasKey ? Math.round(correct / qs.length * 100) : null;
+
+    document.getElementById('r-correct').textContent = hasKey ? correct : '–';
+    document.getElementById('r-wrong').textContent = hasKey ? wrong : '–';
+    document.getElementById('r-skip').textContent = skipped;
+
+    const circleEl = document.getElementById('score-circle');
+    const pctEl = document.getElementById('score-pct');
+    const verdictEl = document.getElementById('verdict');
+    const subEl = document.getElementById('verdict-sub');
+
+    if (hasKey && pct !== null) {
+        pctEl.textContent = pct + '%';
+        let v, s, col;
+        if (pct <= 50)     { v = '💀 Dogshit';      s = 'Significant revision required across the board.';         col = 'var(--incorrect)'; }
+        else if (pct < 60) { v = '😐 Mid';           s = "You're getting there — but there's work to do.";          col = 'var(--orange)'; }
+        else if (pct < 70) { v = '👍 Aight';         s = 'Solid foundation — keep consolidating.';                  col = 'var(--yellow)'; }
+        else if (pct < 80) { v = '🔥 Based';         s = 'Strong performance. Keep that up.';                       col = 'var(--purple)'; }
+        else if (pct < 90) { v = '🤨 Cheater';       s = "Suspiciously good. Did you peek at the answers?";         col = 'var(--correct)'; }
+        else               { v = '🏆 Actual Genius'; s = 'Perfect score territory. Genuinely unreal.';              col = 'var(--accent)'; }
+        verdictEl.textContent = v;
+        subEl.textContent = s;
+        circleEl.style.borderColor = col;
+        pctEl.style.color = col;
+    } else {
+        pctEl.textContent = answered + '/' + qs.length;
+        verdictEl.textContent = '✅ Completed';
+        subEl.textContent = 'No answer key — review your answers below.';
+        document.getElementById('r-correct').textContent = '–';
+        document.getElementById('r-wrong').textContent = '–';
+    }
+
+    show('results-screen');
+}
+
+// ─────────────────────────────────────────────
+//  COPY SUMMARY
+// ─────────────────────────────────────────────
+function copySummary() {
+    const qs = EXAM_DATA.questions;
+    const hasKey = qs.some(q => q.answer !== null && q.answer !== undefined);
+    const wrongTopics = {}, rightTopics = {};
+    let correct = 0;
+
+    qs.forEach((q, i) => {
+        if (!hasKey || q.answer === null) return;
+        const t = q.topic || 'General';
+        if (S.answers[i] === q.answer) { correct++; rightTopics[t] = (rightTopics[t] || 0) + 1; }
+        else { wrongTopics[t] = (wrongTopics[t] || 0) + 1; }
+    });
+
+    const pct = hasKey ? Math.round(correct / qs.length * 100) : null;
+    const skipped = qs.length - Object.keys(S.answers).length;
+
+    const lines = [
+        '=== TEST PERFORMANCE SUMMARY ===',
+        'Test: ' + EXAM_DATA.title,
+        'Date: ' + new Date().toLocaleDateString('en-GB'),
+        '',
+        'Score: ' + (pct !== null ? pct + '%' : 'N/A') +
+            ' (' + correct + '/' + qs.length + ' correct)',
+        'Skipped: ' + skipped,
+        ''
+    ];
+
+    const badTopics = Object.entries(wrongTopics).sort((a,b) => b[1]-a[1]);
+    const goodTopics = Object.entries(rightTopics).sort((a,b) => b[1]-a[1]);
+
+    if (badTopics.length) {
+        lines.push('Weak topics (errors):');
+        badTopics.forEach(([t, c]) => lines.push('  - ' + t + ': ' + c + ' wrong'));
+        lines.push('');
+    }
+    if (goodTopics.length) {
+        lines.push('Strong topics:');
+        goodTopics.forEach(([t, c]) => lines.push('  - ' + t + ': ' + c + ' correct'));
+    }
+
+    const text = lines.join('\n');
+    const btn = document.getElementById('copy-btn');
+
+    navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = '✓ Copied!';
+        setTimeout(() => { btn.textContent = 'Copy Summary for Claude'; }, 2500);
+    }).catch(() => {
+        document.getElementById('summary-box').innerHTML =
+            '<div class="perf-box">' + esc(text) + '</div>';
+    });
+}
+
+// ─────────────────────────────────────────────
+//  REVIEW
+// ─────────────────────────────────────────────
+function showReview() {
+    const qs = EXAM_DATA.questions;
+    const hasKey = qs.some(q => q.answer !== null && q.answer !== undefined);
+    const container = document.getElementById('review-content');
+    container.innerHTML = '';
+
+    qs.forEach((q, i) => {
+        const ua = S.answers[i];
+        const ca = q.answer;
+        const hk = hasKey && ca !== null && ca !== undefined;
+        let status = 'skipped';
+        if (ua !== undefined) status = !hk ? 'answered' : ua === ca ? 'right' : 'wrong';
+
+        const card = document.createElement('div');
+        card.className = 'review-q ' + (status === 'right' ? 'right' : status === 'wrong' ? 'wrong' : 'skipped');
+
+        let badge = '';
+        if (status === 'right')     badge = '<span class="r-badge b-correct">✓ Correct</span>';
+        else if (status === 'wrong') badge = '<span class="r-badge b-incorrect">✗ Wrong — you: ' + ua + ', correct: ' + ca + '</span>';
+        else if (status === 'answered') badge = '<span class="r-badge b-skipped">Answered (no key)</span>';
+        else                         badge = '<span class="r-badge b-skipped">Skipped</span>';
+
+        const opts = ['A','B','C','D','E'].filter(l => q.options && q.options[l]).map(l => {
+            let cls = 'option disabled';
+            if (hk && l === ca) cls += ' correct';
+            else if (ua === l && l !== ca) cls += ' incorrect';
+            else if (ua === l) cls += ' selected';
+            return '<div class="' + cls + '"><div class="option-label">' + l + '</div>' +
+                '<div class="option-text">' + esc(q.options[l]) + '</div></div>';
+        }).join('');
+
+        const stemHtml = (q.stem && q.question && q.stem !== q.question)
+            ? '<div class="q-stem" style="font-size:14px;margin-bottom:12px;">' + esc(q.stem) + '</div>'
+            : '';
+
+        card.innerHTML =
+            '<div class="review-q-header">' +
+                '<span class="q-number" style="font-size:12px;">Q' + (i+1) + (q.topic ? ' · ' + esc(q.topic) : '') + '</span>' +
+                badge +
+            '</div>' +
+            stemHtml +
+            '<div class="q-question" style="font-size:15px;margin-bottom:16px;">' + esc(q.question || q.stem || '') + '</div>' +
+            '<div class="options">' + opts + '</div>' +
+            (q.explanation ? '<div style="margin-top:12px;padding:12px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.3);border-radius:8px;font-size:13px;line-height:1.6;">' + esc(q.explanation) + '</div>' : '');
+
+        container.appendChild(card);
+    });
+
+    show('review-screen');
+}
+
+// ─────────────────────────────────────────────
+//  RESTART
+// ─────────────────────────────────────────────
+function restart() {
+    clearInterval(S.tick);
+    S.idx = 0; S.answers = {}; S.ended = false; S.started = false;
+    S.secsLeft = Math.ceil(EXAM_DATA.questions.length * 1.7) * 60;
+    document.getElementById('timer').style.display = '';
+    show('start-screen');
+}
+
+// ─────────────────────────────────────────────
+//  UTILITIES
+// ─────────────────────────────────────────────
+function show(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+function esc(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─────────────────────────────────────────────
+//  KEYBOARD SHORTCUTS
+// ─────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+    if (!S.started || S.ended) return;
+    const active = document.getElementById('exam-screen');
+    if (!active || !active.classList.contains('active')) return;
+    const k = e.key.toUpperCase();
+    if (['A','B','C','D','E'].includes(k)) { e.preventDefault(); pick(S.idx, k); }
+    else if (e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+});
+
+  // ── Highlight feature ────────────────────────────────────────────────────
+  const hlState = {};
+
+  const hlBtn = document.getElementById('hl-btn');
+
+  function escHtml(t) {
+    return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function renderStemHtml(text) {
+    return escHtml(text || '').replace(/\n\n/g, '<br><br>').replace(/\n/g, ' ');
+  }
+
+  function hideHlBtn() { hlBtn.style.display = 'none'; }
+
+  document.getElementById('q-stem').addEventListener('mouseup', function() {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !sel.toString().trim()) { hideHlBtn(); return; }
+    const range = sel.getRangeAt(0);
+    if (!document.getElementById('q-stem').contains(range.commonAncestorContainer)) { hideHlBtn(); return; }
+    const rect = range.getBoundingClientRect();
+    hlBtn.style.left = Math.max(4, rect.left + rect.width / 2 - 48) + 'px';
+    hlBtn.style.top  = (rect.top + window.scrollY - 38) + 'px';
+    hlBtn.style.display = 'block';
+  });
+
+  document.addEventListener('mousedown', function(e) {
+    if (e.target !== hlBtn) hideHlBtn();
+  });
+
+  hlBtn.addEventListener('click', function() {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed) return;
+    const range = sel.getRangeAt(0);
+    const stemEl = document.getElementById('q-stem');
+    if (!stemEl.contains(range.commonAncestorContainer)) return;
+    try {
+      const mark = document.createElement('mark');
+      mark.className = 'hl';
+      mark.title = 'Double-click to remove highlight';
+      range.surroundContents(mark);
+    } catch(e) {
+      const frag = range.extractContents();
+      const mark = document.createElement('mark');
+      mark.className = 'hl';
+      mark.title = 'Double-click to remove highlight';
+      mark.appendChild(frag);
+      range.insertNode(mark);
+    }
+    sel.removeAllRanges();
+    hideHlBtn();
+    const idx = typeof S !== 'undefined' ? S.current : 0;
+    hlState[idx] = stemEl.innerHTML;
+  });
+
+  document.getElementById('q-stem').addEventListener('dblclick', function(e) {
+    if (e.target.tagName === 'MARK' && e.target.classList.contains('hl')) {
+      const mark = e.target;
+      const parent = mark.parentNode;
+      while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+      parent.removeChild(mark);
+      const idx = typeof S !== 'undefined' ? S.current : 0;
+      hlState[idx] = document.getElementById('q-stem').innerHTML;
+    }
+  });
+  // ── End highlight feature ─────────────────────────────────────────────────
+
+</script>
+
+  <button id="hl-btn">✦ Highlight</button>
+</body>
+</html>

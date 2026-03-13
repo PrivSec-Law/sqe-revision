@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Land Law — Topic Practice Test</title>
+    <style>
+        :root {
+            --bg: #2E3440;
+            --surface: #3B4252;
+            --surface2: #434C5E;
+            --text: #ECEFF4;
+            --text2: #D8DEE9;
+            --accent: #5E81AC;
+            --accent-hover: #81A1C1;
+            --correct: #A3BE8C;
+            --incorrect: #BF616A;
+            --border: #4C566A;
+            --yellow: #EBCB8B;
+            --orange: #D08770;
+            --purple: #B48EAD;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── Header ── */
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-left { display: flex; align-items: center; gap: 14px; }
+        .exam-badge {
+            background: var(--accent);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .exam-title { font-size: 14px; font-weight: 600; color: var(--text); max-width: 400px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .header-right { display: flex; align-items: center; gap: 14px; }
+        .timer {
+            font-size: 17px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            background: var(--surface2);
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            transition: color 0.3s, border-color 0.3s;
+        }
+        .timer.warning { color: var(--yellow); border-color: var(--yellow); }
+        .timer.critical { color: var(--incorrect); border-color: var(--incorrect); animation: pulse 1s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
+
+        /* ── Progress bar ── */
+        .progress-wrap { background: var(--surface2); height: 3px; }
+        .progress-bar { height: 100%; background: var(--accent); transition: width 0.3s ease; }
+
+        /* ── Screens ── */
+        .screen { display: none; }
+        .screen.active { display: flex; flex-direction: column; }
+
+        /* ── Start screen ── */
+        #start-screen { min-height: 100vh; align-items: center; justify-content: center; padding: 40px 24px; }
+        .start-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 48px 40px;
+            max-width: 520px;
+            width: 100%;
+            text-align: center;
+        }
+        .start-badge {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 20px;
+        }
+        .start-title { font-size: 22px; font-weight: 700; margin-bottom: 10px; line-height: 1.3; }
+        .start-subtitle { font-size: 14px; color: var(--text2); margin-bottom: 28px; line-height: 1.6; }
+        .start-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 28px; }
+        .stat { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px 10px; }
+        .stat-value { font-size: 22px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+        .stat-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+        .timer-row {
+            display: flex; align-items: center; justify-content: center;
+            gap: 10px; margin-bottom: 22px; font-size: 14px; color: var(--text2); cursor: pointer;
+        }
+        .toggle { width: 38px; height: 20px; background: var(--surface2); border-radius: 10px; position: relative; transition: background 0.2s; border: 1px solid var(--border); flex-shrink: 0; }
+        .toggle.on { background: var(--accent); border-color: var(--accent); }
+        .toggle-thumb { width: 14px; height: 14px; background: white; border-radius: 50%; position: absolute; top: 2px; left: 2px; transition: transform 0.2s; }
+        .toggle.on .toggle-thumb { transform: translateX(18px); }
+
+        /* ── Exam screen ── */
+        .main { flex: 1; display: flex; flex-direction: column; max-width: 840px; width: 100%; margin: 0 auto; padding: 28px 20px; gap: 20px; }
+
+        /* Question nav dots */
+        .q-nav { display: flex; flex-wrap: wrap; gap: 5px; }
+        .q-dot {
+            width: 30px; height: 30px; border-radius: 6px;
+            border: 1px solid var(--border); background: var(--surface);
+            color: var(--text2); font-size: 11px; font-weight: 600;
+            cursor: pointer; transition: all 0.12s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .q-dot:hover { border-color: var(--accent); color: var(--accent); }
+        .q-dot.answered { background: var(--surface2); color: var(--text); border-color: var(--surface2); }
+        .q-dot.current { background: var(--accent); color: white; border-color: var(--accent); }
+        .q-dot.correct { background: var(--correct); color: white; border-color: var(--correct); }
+        .q-dot.incorrect { background: var(--incorrect); color: white; border-color: var(--incorrect); }
+
+        /* Question card */
+        .q-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; }
+        .q-meta { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+        .q-number { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+        .q-topic-badge { font-size: 12px; color: var(--text2); background: var(--surface2); padding: 3px 10px; border-radius: 20px; border: 1px solid var(--border); }
+        .q-stem { font-size: 15px; line-height: 1.8; color: var(--text); margin-bottom: 0; white-space: normal; user-select: text; cursor: text; }
+        mark.hl { background: #EBCB8B; color: #2E3440; border-radius: 2px; cursor: pointer; padding: 0 1px; }
+        #hl-btn { position: fixed; background: #EBCB8B; color: #2E3440; border: none; border-radius: 5px; padding: 5px 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: none; z-index: 9999; box-shadow: 0 2px 10px rgba(0,0,0,.4); letter-spacing: .3px; }
+        #hl-btn:hover { background: #D8B97A; }
+        .q-question { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 20px; margin-top: 1.4em; }
+
+        /* Options */
+        .options { display: flex; flex-direction: column; gap: 8px; }
+        .option {
+            display: flex; align-items: flex-start; gap: 12px;
+            padding: 13px 14px; border-radius: 8px;
+            border: 1px solid var(--border); background: var(--bg);
+            cursor: pointer; transition: all 0.12s; user-select: none;
+        }
+        .option:hover:not(.disabled) { border-color: var(--accent); background: rgba(59,130,246,0.06); }
+        .option.selected { border-color: var(--accent); background: rgba(59,130,246,0.1); }
+        .option.correct { border-color: var(--correct); background: rgba(34,197,94,0.1); }
+        .option.incorrect { border-color: var(--incorrect); background: rgba(239,68,68,0.1); }
+        .option.disabled { cursor: default; }
+        .option-label {
+            display: flex; align-items: center; justify-content: center;
+            min-width: 26px; height: 26px; border-radius: 5px;
+            background: var(--surface2); color: var(--text2);
+            font-size: 12px; font-weight: 700; transition: all 0.12s; flex-shrink: 0;
+        }
+        .option.selected .option-label { background: var(--accent); color: white; }
+        .option.correct .option-label { background: var(--correct); color: white; }
+        .option.incorrect .option-label { background: var(--incorrect); color: white; }
+        .option-text { font-size: 14px; line-height: 1.6; color: var(--text); flex: 1; }
+
+        /* Navigation */
+        .nav-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+        .key-hints { font-size: 12px; color: var(--text2); text-align: center; }
+        .kbd { display: inline-block; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: 10px; font-family: monospace; color: var(--text2); }
+
+        /* Buttons */
+        .btn { padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; transition: all 0.12s; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--surface2); }
+        .btn-danger { background: transparent; color: var(--incorrect); border: 1px solid var(--incorrect); }
+        .btn-danger:hover { background: rgba(239,68,68,0.1); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* ── Results screen ── */
+        #results-screen { min-height: 100vh; align-items: center; justify-content: center; padding: 40px 24px; }
+        .results-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 16px; padding: 44px 40px;
+            max-width: 600px; width: 100%; text-align: center;
+        }
+        .score-circle {
+            width: 110px; height: 110px; border-radius: 50%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            margin: 0 auto 18px; border: 4px solid var(--accent);
+        }
+        .score-pct { font-size: 30px; font-weight: 800; }
+        .score-small { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+        .verdict { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+        .verdict-sub { font-size: 14px; color: var(--text2); margin-bottom: 28px; }
+        .res-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 28px; }
+        .res-stat { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+        .res-stat-value { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+        .res-stat-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+        .res-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px; }
+        .perf-box {
+            background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+            padding: 14px 16px; text-align: left; font-size: 12px; color: var(--text2);
+            font-family: monospace; line-height: 1.7; white-space: pre-wrap; margin-top: 12px;
+        }
+
+        /* ── Review screen ── */
+        .review-header {
+            background: var(--surface); border-bottom: 1px solid var(--border);
+            padding: 14px 24px; display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
+        }
+        .review-title { font-size: 15px; font-weight: 700; }
+        .review-content { max-width: 840px; width: 100%; margin: 0 auto; padding: 28px 20px; display: flex; flex-direction: column; gap: 16px; }
+        .review-q {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 10px; padding: 22px; border-left-width: 4px;
+        }
+        .review-q.right { border-left-color: var(--correct); }
+        .review-q.wrong { border-left-color: var(--incorrect); }
+        .review-q.skipped { border-left-color: var(--surface2); }
+        .review-q-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .r-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .b-correct { background: rgba(34,197,94,0.15); color: var(--correct); }
+        .b-incorrect { background: rgba(239,68,68,0.15); color: var(--incorrect); }
+        .b-skipped { background: var(--surface2); color: var(--text2); }
+
+        /* ── Modal ── */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; z-index: 200; }
+        .modal-overlay.open { display: flex; }
+        .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; max-width: 400px; width: 100%; text-align: center; }
+        .modal h3 { font-size: 18px; margin-bottom: 12px; }
+        .modal p { color: var(--text2); font-size: 14px; line-height: 1.6; margin-bottom: 24px; }
+        .modal-btns { display: flex; gap: 10px; justify-content: center; }
+    </style>
+</head>
+<body>
+
+<!-- ══ START SCREEN ══ -->
+<div id="start-screen" class="screen active">
+    <div class="start-card">
+        <div class="start-badge">SQE1 Practice</div>
+        <h1 class="start-title" id="start-title"></h1>
+        <p class="start-subtitle">Single Best Answer — select the most correct option for each question.</p>
+        <div class="start-stats">
+            <div class="stat">
+                <div class="stat-value" id="stat-q">0</div>
+                <div class="stat-label">Questions</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="stat-t">0m</div>
+                <div class="stat-label">SQE Time</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">A–E</div>
+                <div class="stat-label">Format</div>
+            </div>
+        </div>
+        <div class="timer-row" onclick="toggleTimer()">
+            <span>Timed mode</span>
+            <div class="toggle on" id="timer-toggle"><div class="toggle-thumb"></div></div>
+            <span id="timer-txt">On</span>
+        </div>
+        <button class="btn btn-primary" style="width:100%;padding:13px;font-size:15px;" onclick="startExam()">Begin Exam</button>
+    </div>
+</div>
+
+<!-- ══ EXAM SCREEN ══ -->
+<div id="exam-screen" class="screen">
+    <div class="header">
+        <div class="header-left">
+            <span class="exam-badge">SQE1</span>
+            <span class="exam-title" id="hdr-title"></span>
+        </div>
+        <div class="header-right">
+            <div class="timer" id="timer">--:--</div>
+            <button class="btn btn-danger" style="padding:7px 13px;" onclick="confirmEnd()">End Exam</button>
+        </div>
+    </div>
+    <div class="progress-wrap"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
+    <div class="main">
+        <div class="q-nav" id="q-nav"></div>
+        <div class="q-card">
+            <div class="q-meta">
+                <span class="q-number" id="q-num">Question 1 of N</span>
+                <span class="q-topic-badge" id="q-topic"></span>
+            </div>
+            <div class="q-stem" id="q-stem"></div>
+            <div class="q-question" id="q-question"></div>
+            <div class="options" id="options"></div>
+        </div>
+        <div class="nav-row">
+            <button class="btn btn-secondary" id="btn-prev" onclick="prev()">← Prev</button>
+            <div class="key-hints">
+                <span class="kbd">A</span>–<span class="kbd">E</span> answer &nbsp;·&nbsp;
+                <span class="kbd">→</span> next &nbsp;·&nbsp;
+                <span class="kbd">←</span> prev
+            </div>
+            <button class="btn btn-primary" id="btn-next" onclick="next()">Next →</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ RESULTS SCREEN ══ -->
+<div id="results-screen" class="screen">
+    <div style="display:flex;align-items:center;justify-content:center;flex:1;padding:40px 24px;">
+        <div class="results-card">
+            <div class="score-circle" id="score-circle">
+                <div class="score-pct" id="score-pct">-</div>
+                <div class="score-small">Score</div>
+            </div>
+            <div class="verdict" id="verdict"></div>
+            <div class="verdict-sub" id="verdict-sub"></div>
+            <div class="res-stats">
+                <div class="res-stat">
+                    <div class="res-stat-value" style="color:var(--correct)" id="r-correct">-</div>
+                    <div class="res-stat-label">Correct</div>
+                </div>
+                <div class="res-stat">
+                    <div class="res-stat-value" style="color:var(--incorrect)" id="r-wrong">-</div>
+                    <div class="res-stat-label">Incorrect</div>
+                </div>
+                <div class="res-stat">
+                    <div class="res-stat-value" style="color:var(--text2)" id="r-skip">-</div>
+                    <div class="res-stat-label">Skipped</div>
+                </div>
+            </div>
+            <div class="res-actions">
+                <button class="btn btn-secondary" onclick="showReview()">Review Answers</button>
+                <button class="btn btn-primary" id="copy-btn" onclick="copySummary()">Copy Summary for Claude</button>
+                <button class="btn btn-secondary" onclick="restart()">Restart</button>
+            </div>
+            <div id="summary-box"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ REVIEW SCREEN ══ -->
+<div id="review-screen" class="screen">
+    <div class="review-header">
+        <span class="review-title">Review All Answers</span>
+        <button class="btn btn-secondary" style="padding:7px 13px;" onclick="show('results-screen')">← Results</button>
+    </div>
+    <div class="review-content" id="review-content"></div>
+</div>
+
+<!-- ══ END MODAL ══ -->
+<div class="modal-overlay" id="end-modal">
+    <div class="modal">
+        <h3>End the exam?</h3>
+        <p>You have <strong id="modal-skip">0</strong> unanswered question(s). This cannot be undone.</p>
+        <div class="modal-btns">
+            <button class="btn btn-secondary" onclick="closeModal()">Keep going</button>
+            <button class="btn btn-danger" onclick="endExam()">End exam</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  EXAM DATA  (replaced by test-digitiser skill)
+// ─────────────────────────────────────────────
+const EXAM_DATA = {"title": "Land Law — Topic Practice Test", "questions": [{"id": 1, "topic": "Land Law — Chapter 1: The Nature of Land", "stem": "Arthur, a successful businessman, purchases a large country estate. The estate includes a manor house, extensive gardens, and a surrounding woodland area. Within the woodland, there is an ancient oak tree, known as \"The King's Oak,\" which has been the centerpiece of local historical celebrations for centuries. Beneath the ground, a previously unknown network of caves is discovered, containing rare minerals. Arthur, excited by his discovery, begins extracting these minerals for commercial sale. Local historians protest against Arthur's actions, claiming that \"The King's Oak\" and the caves are part of the historical and natural heritage of the land and should be protected.", "question": "Which of the following statements BEST describes the legal position regarding \"The King's Oak\" and the caves in the context of land ownership?", "options": {"A": "Arthur, as the freehold owner, has absolute rights over everything on and beneath the land, including \"The King's Oak\" and the caves, and can use them as he wishes.", "B": "\"The King's Oak,\" due to its historical significance, is likely to be considered a chattel, and ownership remains with the local historians, separate from Arthur's ownership of the land. The caves and their minerals, being beneath the surface, belong entirely to Arthur.", "C": "\"The King's Oak\" is part of the land due to the doctrine of tenure, but its historical significance may lead to restrictions on Arthur's use. The caves and minerals are also part of the land, but Arthur's right to extract them may be limited by environmental protection legislation.", "D": "\"The King's Oak\" and the caves are separate from the land; \"The King's Oak\" belongs to the Crown due to its historical importance, and the caves belong to the local authority because of the minerals they contain.", "E": "\"The King's Oak\" is considered part of the land, but Arthur's ownership is limited by the rights of local residents to continue their historical celebrations. The caves, while part of the land, can only be accessed and exploited by Arthur with the permission of the Secretary of State."}, "answer": "C", "explanation": null}, {"id": 2, "topic": "Land Law — Chapter 1: The Nature of Land", "stem": "Esme is selling her property, \"Rose Cottage.\" During the sale process, it is revealed that a stone garden bench, a fitted kitchen, and a collection of rare roses planted in the garden are subjects of dispute. The garden bench was a gift from Esme's mother and is heavy but not fixed to the ground. The fitted kitchen was installed by Esme 15 years ago. The rare roses were planted by Esme over the last 20 years. Esme intends to take all three items with her, but the buyer, Frederick, argues they should remain.", "question": "Which of the following BEST explains whether each item is likely to be considered part of the land?", "options": {"A": "The garden bench, kitchen, and roses are all chattels and Esme can remove them.", "B": "The garden bench and roses are chattels, but the kitchen is a fixture and must remain.", "C": "The garden bench is a chattel, but the kitchen and roses are fixtures and must remain.", "D": "All three items are fixtures and must remain with the property.", "E": "The kitchen is a fixture, the roses are chattels, and the garden bench's status depends on the degree and purpose of annexation."}, "answer": "E", "explanation": null}, {"id": 3, "topic": "Land Law — Chapter 1: The Nature of Land", "stem": "Gareth owns a rural property, \"Willow Farm.\" He discovers an old well on the land, which is the only reliable source of water for the neighboring property, \"Hillside Cottage,\" owned by Hannah. Hannah has been using the well for 25 years with the previous owner's permission. Gareth decides to cut off Hannah's access to the well, arguing that it is entirely within his property and he has no obligation to provide water to his neighbor. Hannah claims a right to the water from the well.", "question": "On what legal basis, if any, could Hannah claim a right to the water from the well on Gareth's property?", "options": {"A": "Hannah has no legal basis to claim a right to the water; Gareth, as the landowner, has absolute control over all resources on his property.", "B": "Hannah may have acquired an easement to take water from the well through long use, provided certain conditions are met.", "C": "Hannah can claim a right to the water based on the principle of common ownership of natural resources.", "D": "Hannah's right to the water is protected by legislation ensuring access to essential resources for all properties.", "E": "Hannah can only claim a right to the water if the previous owner of Willow Farm had formally granted her permission in writing."}, "answer": "B", "explanation": null}, {"id": 4, "topic": "Land Law — Chapter 1: The Nature of Land", "stem": "Ingrid purchases a property, \"Seaview House,\" which includes a boathouse located on the edge of the adjacent beach. The boathouse has been used by the previous owner, James, for storing his small boat and fishing equipment. Shortly after Ingrid moves in, she discovers that local fishermen have been using a section of the beach in front of the boathouse for generations to launch their boats and nets. They claim a right to continue this practice, which Ingrid finds disruptive.", "question": "What are the likely legal considerations regarding the fishermen's claim to use the beach in front of Ingrid's boathouse?", "options": {"A": "The fishermen have no right to use the beach; Ingrid's ownership of Seaview House extends to the mean high water mark, giving her exclusive control.", "B": "The fishermen may have acquired rights over the beach through prescription if their use has been continuous, open, and without permission for a sufficient period.", "C": "The fishermen's use of the beach is a public right and cannot be restricted by Ingrid.", "D": "Ingrid must allow the fishermen access, as their use is essential for their livelihood.", "E": "The fishermen's rights are limited to the boathouse itself and do not extend to the adjacent beach."}, "answer": "B", "explanation": null}, {"id": 5, "topic": "Land Law — Chapter 1: The Nature of Land", "stem": "Jasper buys a historic building, \"Blackwood Hall,\" intending to convert it into a luxury hotel. During renovations, workers uncover a series of medieval tapestries affixed to the walls. These tapestries are extremely delicate and require specialist removal and conservation. There is a dispute between Jasper, who wants to sell the tapestries to fund the renovations, and a local heritage society, which argues that the tapestries are part of the building and should remain.", "question": "Which of the following BEST explains the likely legal position regarding the ownership of the tapestries?", "options": {"A": "The tapestries are chattels and belong to Jasper, who can remove and sell them.", "B": "The tapestries are fixtures and form part of the building, and therefore belong to Jasper, but he cannot remove them without special permission.", "C": "The tapestries are fixtures and form part of the building; their ownership passes with the building, and Jasper cannot remove or sell them.", "D": "The tapestries belong to the local heritage society, as they are of historical significance.", "E": "The tapestries' ownership is determined by their age; if they predate a certain period, they belong to the Crown."}, "answer": "C", "explanation": null}, {"id": 6, "topic": "Land Law — Chapter 1: The Nature of Land", "stem": "Orlando owns a property that includes a main house and an adjacent annex. The annex has a selfcontained kitchen and bathroom. Recently, Orlando's friend, Patrick, has been staying in the annex. Orlando allows Patrick to stay there, and Patrick pays Orlando a monthly sum described as a \"contribution to expenses.\" There is no written agreement. Orlando is now in a dispute with Patrick and wants him to leave. Patrick claims he has a right to stay.", "question": "What is the most likely determination of Patrick's right to remain in the annex?", "options": {"A": "Patrick has a leasehold estate because he is paying a monthly sum, and therefore, he has exclusive possession.", "B": "Patrick has a license because there is no written agreement, and the arrangement is informal.", "C": "Patrick has a tenancy at will, which can be terminated with reasonable notice.", "D": "Patrick has an equitable lease, as he has been paying rent and has occupied the property.", "E": "Patrick has a freehold estate due to his continuous occupation and payments to Orlando."}, "answer": "B", "explanation": null}, {"id": 7, "topic": "Land Law — Chapter 1: The Nature of Land", "stem": "Quentin is selling his property, \"The Willows.\" In the garden, there is an antique sundial resting on a stone plinth and a newly installed hot tub. The sundial is not attached to the plinth or the ground, and the hot tub is wired into the electrical supply. Quentin intends to take both items with him, but the buyer, Rebecca, believes they should stay.", "question": "What is the likely legal position regarding the sundial and the hot tub?", "options": {"A": "Both the sundial and the hot tub are chattels and can be removed by Quentin.", "B": "The sundial is a chattel, but the hot tub is a fixture and must remain.", "C": "The sundial is a fixture, but the hot tub is a chattel and can be removed by Quentin.", "D": "Both the sundial and the hot tub are fixtures and must remain with the property.", "E": "The sundial's status depends on its historical significance, and the hot tub is a fixture."}, "answer": "B", "explanation": null}, {"id": 8, "topic": "Land Law — Chapter 1: The Nature of Land", "stem": "Simon owns a property that borders a river. Over the years, the riverbank has gradually shifted, with new land forming on Simon's side. Simon wishes to claim this new land as part of his property, but his neighbor disputes his claim.", "question": "What legal principle is most relevant to determining the ownership of the new land formed by the shifting riverbank?", "options": {"A": "The principle of adverse possession.", "B": "The doctrine of accretion.", "C": "The principle of common ownership.", "D": "The rule in Elitestone Ltd v Morris.", "E": "The concept of \"finders keepers.\""}, "answer": "B", "explanation": null}, {"id": 9, "topic": "Land Law — Chapter 1: The Nature of Land", "stem": "Ursula owns a property with a large garden. She grants her neighbor, Victor, permission to cross a section of her garden to access the main road. This arrangement is purely verbal. Later, Ursula and Victor have a falling out, and Ursula tells Victor he can no longer cross her garden. Victor argues that he has acquired a right of way.", "question": "What is the legal nature of Victor's ability to cross Ursula's garden, and can Ursula revoke it?", "options": {"A": "Victor has an easement, which is a legal right that cannot be revoked.", "B": "Victor has a license, which is a personal right that Ursula can revoke.", "C": "Victor has a prescriptive right, as he has been crossing the garden for a period of time.", "D": "Victor has a right in equity, which is enforceable if he has paid for it.", "E": "Victor has a common right of way, which cannot be restricted."}, "answer": "B", "explanation": null}, {"id": 10, "topic": "Land Law — Chapter 1: The Nature of Land", "stem": "Wesley purchases a property that includes a barn converted into a workshop. Attached to the barn are several heavy workbenches bolted to the floor and a large extraction fan system fixed to the walls and roof. The seller, Yvonne, claims that she is entitled to remove these items.", "question": "What is the likely legal classification of the workbenches and the extraction fan system, and can Yvonne remove them?", "options": {"A": "Both the workbenches and the extraction fan system are chattels and can be removed by Yvonne.", "B": "The workbenches are chattels, but the extraction fan system is a fixture and must remain.", "C": "The workbenches are fixtures, but the extraction fan system is a chattel and can be removed by Yvonne.", "D": "Both the workbenches and the extraction fan system are fixtures and must remain with the property.", "E": "The workbenches' status depends on their age, and the extraction fan system is a chattel if easily removable."}, "answer": "D", "explanation": null}, {"id": 11, "topic": "Land Law — Chapter 2: Co-ownership and Trusts", "stem": "Amelia, Ben, and Chloe purchase a large house together, contributing equally to the purchase price. The transfer deed states that they are to hold the property as beneficial joint tenants. Several years later, Amelia becomes seriously ill and, fearing the worst, secretly executes a written declaration severing her beneficial joint tenancy. She places this declaration in a locked box at her home but does not inform Ben or Chloe of its existence. Shortly thereafter, Amelia sadly passes away. Ben and Chloe are now considering selling the property.", "question": "Which of the following best describes the beneficial ownership of the property following Amelia's death?", "options": {"A": "Ben and Chloe hold the entire beneficial interest as joint tenants because Amelia's severance was ineffective as it was not communicated to them.", "B": "Ben and Chloe hold the beneficial interest as tenants in common in equal shares because the original joint tenancy was automatically severed upon Amelia's death.", "C": "Ben and Chloe hold two-thirds of the beneficial interest as joint tenants, and Amelia's estate holds the remaining one-third as a tenant in common.", "D": "Ben and Chloe hold the beneficial interest as joint tenants of two-thirds, and Amelia's estate holds the remaining one-third as a joint tenant with Ben and Chloe.", "E": "Ben and Chloe hold the entire beneficial interest as tenants in common in equal shares because any joint tenancy is severed upon the death of one of the joint tenants."}, "answer": "C", "explanation": null}, {"id": 12, "topic": "Land Law — Chapter 2: Co-ownership and Trusts", "stem": "David and Emily are a cohabiting couple who purchase a property together. David contributes 70% of the purchase price, and Emily contributes 30%. The transfer deed is silent as to how they hold the beneficial interest. After several years, their relationship breaks down, and they disagree on how the property should be divided. David argues that he should receive a larger share reflecting his greater financial contribution. Emily contends that they should have equal shares.", "question": "Which of the following best describes the likely way a court would determine the beneficial interests in the property?", "options": {"A": "The court will presume that they hold the beneficial interest as joint tenants in equity, meaning they are entitled to equal shares, regardless of their unequal contributions.", "B": "The court will presume that they hold the beneficial interest as tenants in common in proportion to their contributions to the purchase price (70% to David, 30% to Emily).", "C": "The court will disregard the initial contributions and divide the beneficial interest equally because they were a cohabiting couple.", "D": "The court will order the property to be sold and divide the proceeds based on what it considers fair and reasonable in all the circumstances.", "E": "The court will presume a resulting trust based on their unequal contributions, meaning David holds 70% and Emily holds 30% of the beneficial interest."}, "answer": "E", "explanation": null}, {"id": 13, "topic": "Land Law — Chapter 2: Co-ownership and Trusts", "stem": "Frank, Grace, and Harry are the legal owners of a property held on trust for themselves as the beneficiaries. Frank is facing severe financial difficulties and wishes to sell his beneficial interest in the property to a third party, Iris. Grace and Harry object to this sale, fearing that Iris's presence will disrupt their living arrangements. The trust deed does not contain any express provisions restricting the sale of a beneficial interest.", "question": "Which of the following best describes Frank's ability to sell his beneficial interest to Iris?", "options": {"A": "Frank cannot sell his beneficial interest without the consent of Grace and Harry, as they are co-trustees.", "B": "Frank can sell his beneficial interest to Iris without the consent of Grace and Harry, as a beneficial interest is a form of property that is freely transferable.", "C": "Frank can only sell his beneficial interest with the permission of the court, which will consider the wishes of all the beneficiaries.", "D": "Frank can only sell his beneficial interest to Grace or Harry, as the other beneficiaries have a right of first refusal.", "E": "Frank's ability to sell his beneficial interest depends on whether the legal title is held as a joint tenancy or a tenancy in common."}, "answer": "B", "explanation": null}, {"id": 14, "topic": "Land Law — Chapter 2: Co-ownership and Trusts", "stem": "Liam and Maya are the legal and beneficial joint tenants of a property. Liam, without Maya's knowledge or consent, mortgages his beneficial interest in the property to secure a personal loan. Liam subsequently defaults on the loan, and the lender seeks to enforce the mortgage. Maya argues that the mortgage is not binding on her beneficial interest.", "question": "Which of the following best describes the effect of Liam's mortgage on the beneficial ownership of the property?", "options": {"A": "The mortgage is void because Liam cannot unilaterally mortgage a beneficial joint tenancy.", "B": "The mortgage operates as a severance of Liam's beneficial joint tenancy, and the lender has a charge over his former share, which is now held as a tenancy in common. Maya remains a joint tenant of her original share.", "C": "The mortgage is binding on the entire beneficial interest in the property because Liam is a legal owner.", "D": "The mortgage only affects Liam's beneficial interest if Maya consents to it in writing.", "E": "The mortgage has no effect on the beneficial ownership until Liam dies."}, "answer": "B", "explanation": null}, {"id": 15, "topic": "Land Law — Chapter 2: Co-ownership and Trusts", "stem": "Olivia and Peter are the legal owners of a property held on trust for themselves and Olivia's sister, Quinn, as beneficial joint tenants. Olivia becomes bankrupt.", "question": "What is the likely impact of Olivia's bankruptcy on the beneficial ownership of the property?", "options": {"A": "Olivia's bankruptcy has no effect on the beneficial joint tenancy; Olivia, Peter, and Quinn remain joint tenants.", "B": "Olivia's bankruptcy automatically severs her beneficial joint tenancy, and her share passes to her trustee in bankruptcy, who holds it as a tenant in common with Peter and Quinn, who remain joint tenants of their combined shares.", "C": "Olivia's bankruptcy severs the beneficial joint tenancy of all three beneficiaries, and they all become tenants in common in equal shares.", "D": "Olivia's bankruptcy only affects her legal title, not her beneficial interest, so the beneficial joint tenancy remains intact.", "E": "The court will decide how the beneficial interest should be divided based on the circumstances of Olivia's bankruptcy."}, "answer": "B", "explanation": null}, {"id": 16, "topic": "Land Law — Chapter 2: Co-ownership and Trusts", "stem": "Robert and Sarah purchase a property as an investment. Robert provides 80% of the purchase price, and Sarah provides 20%. The transfer deed states that they hold the property as beneficial joint tenants. After some time, Robert and Sarah decide to end their business arrangement. Robert argues that he should be entitled to 80% of the proceeds of sale due to his larger financial contribution. Sarah claims they are entitled to equal shares.", "question": "How is the beneficial interest in the property most likely to be divided between Robert and Sarah?", "options": {"A": "Robert is entitled to 80% of the proceeds of sale, reflecting his initial financial contribution.", "B": "Sarah is entitled to 50% of the proceeds of sale, as the transfer deed expressly declared a joint tenancy.", "C": "Robert is entitled to 60% of the proceeds, and Sarah is entitled to 40%, based on a fair assessment of their contributions and intentions.", "D": "Robert and Sarah are entitled to equal shares because the express declaration of a joint tenancy in the transfer deed is conclusive.", "E": "Sarah is entitled to a greater share if she can prove she has made significant improvements to the property."}, "answer": "D", "explanation": null}, {"id": 17, "topic": "Land Law — Chapter 2: Co-ownership and Trusts", "stem": "Tom, Ursula, and Victor are the legal and beneficial joint tenants of a property. Ursula sends a written letter to Tom and Victor by first-class post, stating her intention to sever her joint tenancy. The letter is correctly addressed, but Tom is away on a two-week holiday and does not read the letter until his return. Victor receives the letter but immediately dismisses it and deletes it from his email without responding. A week later, Ursula is involved in a fatal accident.", "question": "What is the effect of Ursula's letter on the beneficial joint tenancy?", "options": {"A": "Ursula’s letter is ineffective to sever the joint tenancy as it was not read by Tom before her death.", "B": "Ursula’s letter is effective to sever her joint tenancy, and her estate now holds her share as a tenant in common.", "C": "Ursula’s letter only severs her joint tenancy in relation to Victor, as he received and read the letter.", "D": "Ursula’s letter is ineffective because Victor did not acknowledge receipt.", "E": "Ursula’s letter suspends the joint tenancy until Tom returns from holiday and reads it."}, "answer": "B", "explanation": null}, {"id": 18, "topic": "Land Law — Chapter 2: Co-ownership and Trusts", "stem": "Xavier and Yvonne are the legal and beneficial joint tenants of a property. Xavier becomes bankrupt.", "question": "What is the immediate effect of Xavier's bankruptcy on the beneficial ownership of the property?", "options": {"A": "Xavier's bankruptcy has no immediate effect on the joint tenancy.", "B": "Xavier's beneficial joint tenancy is automatically severed, and his share vests in his trustee in bankruptcy as a tenant in common.", "C": "The joint tenancy is severed, and both Xavier and Yvonne hold the property as tenants in common in equal shares.", "D": "The court will determine whether the joint tenancy is severed based on the circumstances of the bankruptcy.", "E": "Yvonne becomes the sole beneficial owner due to the right of survivorship."}, "answer": "B", "explanation": null}, {"id": 19, "topic": "Land Law — Chapter 2: Co-ownership and Trusts", "stem": "Adam, Beth, and Carol are the legal owners of a property held on trust for themselves as beneficial joint tenants. Adam wishes to sell his beneficial interest to his friend, Daniel. Beth and Carol strongly object to the sale. Can Adam proceed with the sale of his beneficial interest to Daniel?", "question": "Adam, Beth, and Carol are the legal owners of a property held on trust for themselves as beneficial joint tenants. Adam wishes to sell his beneficial interest to his friend, Daniel. Beth and Carol strongly object to the sale. Can Adam proceed with the sale of his beneficial interest to Daniel?", "options": {"A": "No, Adam cannot sell his beneficial interest without the consent of Beth and Carol, as they are co-trustees.", "B": "Yes, Adam can sell his beneficial interest, as a beneficial interest in property is generally transferable.", "C": "Adam can only sell his beneficial interest with a court order.", "D": "Adam can only sell his beneficial interest to Beth or Carol.", "E": "The sale is permissible only if the legal estate is held as a tenancy in common."}, "answer": "B", "explanation": null}, {"id": 20, "topic": "Land Law — Chapter 2: Co-ownership and Trusts", "stem": "Freda and Gerald are the legal and beneficial owners of a property. They separate, and Freda moves out. Gerald changes the locks and refuses Freda any access. Freda seeks to force a sale of the property, but Gerald wishes to remain.", "question": "How is a court most likely to resolve this dispute?", "options": {"A": "The court will always order a sale, as Freda has a right to realize her beneficial interest.", "B": "The court will refuse a sale and allow Gerald to remain in the property.", "C": "The court will consider the factors in the Trusts of Land and Appointment of Trustees Act 1996, including the welfare of any children and the original purpose of the property, and may order or refuse a sale.", "D": "The court will order Gerald to buy out Freda's interest at a valuation determined by the court.", "E": "The court will order an immediate sale if Freda can prove she needs the proceeds to secure alternative accommodation."}, "answer": "C", "explanation": null}, {"id": 21, "topic": "Land Law — Chapter 3: Easements", "stem": "A developer, \"Urban Spaces Ltd.,\" purchases a plot of land, \"Greenacre,\" intending to build a block of flats. Greenacre is landlocked and the only feasible access to the main road is across a narrow strip of land, \"Access Way,\" which is part of the adjacent property, \"Hilltop Manor,\" owned by a retired academic, Professor Eldridge. Professor Eldridge initially grants Urban Spaces Ltd. verbal permission to use Access Way during the planning phase. However, once planning permission is granted, Professor Eldridge revokes this permission, citing concerns about increased traffic and noise. Urban Spaces Ltd. argues that they are entitled to an easement over Access Way.", "question": "Which of the following best describes the likely legal outcome regarding Urban Spaces Ltd.'s claim for an easement?", "options": {"A": "Urban Spaces Ltd. has an easement by virtue of Professor Eldridge's initial verbal permission, which is binding despite being non-written.", "B": "Urban Spaces Ltd. is entitled to an easement of necessity, as without it, Greenacre is landlocked and unusable for its intended purpose.", "C": "Urban Spaces Ltd. may be able to establish an easement by prescription if their use of Access Way continues uninterrupted for a sufficient period, but the initial verbal permission prevents this.", "D": "Urban Spaces Ltd. has no right to an easement as Professor Eldridge validly revoked his permission, and there is no other basis for an easement claim.", "E": "Urban Spaces Ltd. is entitled to an easement under the principle of common intention, as it was clearly intended that they would need access to develop Greenacre."}, "answer": "C", "explanation": null}, {"id": 22, "topic": "Land Law — Chapter 3: Easements", "stem": "Fiona owns a large estate, \"Northwood,\" which she divides and sells part of to Gavin, who builds a restaurant called \"The Gilded Fork.\" The kitchen of The Gilded Fork requires a constant supply of fresh water. It is discovered that the most efficient water pipe runs under Fiona's retained land. The transfer deed to Gavin does not mention any rights to run pipes. Fiona later objects to Gavin's use of the pipe. Gavin argues he has a right to the water supply.", "question": "Which of the following best explains whether Gavin has a right to the water supply through the pipe under Fiona's land?", "options": {"A": "Gavin has an implied easement of necessity, as without the water supply, The Gilded Fork cannot function as a restaurant.", "B": "Gavin has an implied easement under the rule in Wheeldon v Burrows, as the right to use the pipe was a continuous and apparent quasi-easement necessary for the reasonable enjoyment of the land sold.", "C": "Gavin has no right to the water supply, as the transfer deed did not expressly grant him such a right.", "D": "Gavin can claim an easement by prescription if he continues to use the pipe for a further 20 years.", "E": "Gavin has an easement under the principle of common intention, as both parties intended the restaurant to operate, and a water supply is essential."}, "answer": "B", "explanation": null}, {"id": 23, "topic": "Land Law — Chapter 3: Easements", "stem": "Harriet owns a property, \"Sunnybank,\" which benefits from a right of way over a neighboring property, \"Shadowlands,\" owned by Ian. The right of way, granted in 1950, is for \"pedestrian access only.\" Harriet decides to convert Sunnybank into a small hotel, significantly increasing the traffic over Shadowlands. Ian objects to the increased use.", "question": "Which of the following best describes the extent to which Harriet can use the right of way following the change of use of Sunnybank?", "options": {"A": "Harriet can use the right of way for all purposes necessary for the hotel, as the change of use does not affect the legal right of way.", "B": "Harriet's use of the right of way is limited to pedestrian access only, as specified in the original grant, and the increased use for hotel purposes is unlawful.", "C": "Harriet can use the right of way for vehicular access, as this is a reasonable development of her property.", "D": "Harriet's increased use is permissible if she pays Ian additional compensation.", "E": "Harriet's right to use the right of way depends on whether the increased use causes substantial interference with Ian's property."}, "answer": "B", "explanation": null}, {"id": 24, "topic": "Land Law — Chapter 3: Easements", "stem": "Jasper owns a property, \"Riverview,\" which has historically benefited from a right to discharge rainwater into a drain on the adjacent property, \"Oakhaven,\" owned by Katherine. A recent severe storm causes significant damage to the drain on Oakhaven, and Katherine refuses to repair it, preventing Jasper from discharging rainwater. Jasper argues that Katherine is obliged to maintain the drain.", "question": "Which of the following best describes Katherine's obligation, if any, to maintain the drain on her property for Jasper's benefit?", "options": {"A": "Katherine is obliged to repair the drain, as it is essential for Jasper's property to discharge rainwater.", "B": "Katherine is not obliged to repair the drain unless the transfer deed expressly imposes a positive obligation on her to do so.", "C": "Katherine must repair the drain under the principle of mutual benefit and burden.", "D": "Katherine's obligation to repair the drain depends on whether she caused the damage.", "E": "Katherine has no obligation to repair the drain, but Jasper can enter her property to carry out the repairs himself."}, "answer": "B", "explanation": null}, {"id": 25, "topic": "Land Law — Chapter 3: Easements", "stem": "Leo owns a property, \"The Pines,\" which has a right of way over a track on the neighboring property, \"Green Gables,\" owned by Margaret. The right of way is not used for many years. Margaret erects a gate across the track, which remains there for over 20 years. Leo eventually wishes to use the right of way again, but Margaret refuses to remove the gate, claiming the easement has been abandoned.", "question": "Which of the following best explains whether the easement has been abandoned?", "options": {"A": "The easement has been abandoned due to the non-use for an extended period.", "B": "The easement has been abandoned due to the erection of the gate for over 20 years, which demonstrates an intention to obstruct the easement.", "C": "The easement has not been abandoned unless Leo expressly agreed to its abandonment.", "D": "The easement has not been abandoned, as mere non-use is insufficient to extinguish an easement.", "E": "The easement's status depends on whether Margaret sought a court order to extinguish it."}, "answer": "D", "explanation": null}, {"id": 26, "topic": "Land Law — Chapter 3: Easements", "stem": "Penelope owns \"Meadow View,\" a property that has, for the past 25 years, benefited from a right to use a private road, \" winding way,\" across the adjacent land, \"orchard downs,\" owned by Quentin. The right of way was never formally granted but has been used continuously and openly by Penelope and the previous owners of Meadow View. Quentin now wishes to develop Orchard Downs and plans to build a fence that would block access to Winding Way. Penelope claims she has acquired an easement by prescription. However, Quentin argues that the use was contentious at various points over the years due to minor disputes about maintenance contributions.", "question": "Which of the following best describes whether Penelope has a valid claim to an easement by prescription over Winding Way?", "options": {"A": "Penelope has a valid claim to an easement by prescription as the use has been continuous for 25 years, and the occasional disputes do not negate this.", "B": "Penelope does not have a valid claim as the use was contentious, and prescriptive easements require use as of right, which contentious use contradicts.", "C": "Penelope may have a claim, but it is dependent on whether the disputes were frequent enough to interrupt the period of continuous use.", "D": "Penelope’s claim will only be valid if she can prove that the previous owners of Meadow View also contributed to the maintenance of Winding Way.", "E": "Penelope’s claim is invalid because the right of way was never formally granted, regardless of the length and nature of the use."}, "answer": "B", "explanation": null}, {"id": 27, "topic": "Land Law — Chapter 3: Easements", "stem": "Reginald owns a historic manor house, \"Grand Hall,\" which is surrounded by extensive gardens. He decides to sell a portion of the gardens, \"West Lawn,\" to Sylvia. The transfer deed grants Sylvia a right of way over a path, \" The Terrace,\" for pedestrian access to West Lawn. After purchasing West Lawn, Sylvia converts it into a popular tea room, significantly increasing the pedestrian traffic over The Terrace. Reginald complains about the increased disturbance and argues that the easement should be limited to residential use only.", "question": "Which of the following best describes the limitations, if any, on Sylvia's use of the right of way over The Terrace?", "options": {"A": "Sylvia’s use of the right of way is limited to pedestrian access for residential purposes only, as that was the original intention of the grant.", "B": "Sylvia is entitled to use the right of way for all purposes related to her property, including commercial use, as the grant was for pedestrian access without restriction.", "C": "The extent of Sylvia's use is limited to what was reasonably contemplated at the time of the grant, and the court will determine whether the increased use for a tea room falls within this.", "D": "Sylvia’s increased use is only permissible if she obtains a variation of the easement from Reginald or the court.", "E": "Sylvia’s use is limited to the frequency and intensity of use that existed before the change to a tea room."}, "answer": "C", "explanation": null}, {"id": 28, "topic": "Land Law — Chapter 3: Easements", "stem": "Ursula owns \"Seaside Cottage,\" which benefits from a right to discharge wastewater through a pipe running under the adjacent property, \"Cliffside Villa,\" owned by Victor. The right was granted expressly in 1970. Recent coastal erosion has caused damage to the pipe where it runs under Cliffside Villa, leading to leaks. Ursula demands that Victor repair the pipe, but Victor refuses, stating it is Ursula's responsibility. The transfer deed is silent regarding the maintenance obligations of the pipe.", "question": "Which of the following best describes the legal obligation, if any, to repair the damaged wastewater pipe?", "options": {"A": "Victor is obligated to repair the pipe under the principle that the owner of the servient land must maintain the easement.", "B": "Ursula is obligated to repair the pipe as the owner of the dominant land, as there is no positive obligation on Victor to maintain it.", "C": "The cost of repair should be shared equally between Ursula and Victor as it is of benefit to both properties.", "D": "Victor is only obligated to repair the pipe if the damage was caused by his negligence.", "E": "Victor has no obligation to repair the pipe, but Ursula has a right to enter Cliffside Villa to conduct necessary repairs."}, "answer": "B", "explanation": null}, {"id": 29, "topic": "Land Law — Chapter 3: Easements", "stem": "Wesley owns \"Hillside Farm,\" which has a right of way over a track on the neighboring property, \"Valley View,\" owned by Xavier. The right of way was granted in 1985 \"for agricultural purposes only.\" Wesley decides to diversify his business and begins operating a farm-based adventure park, significantly increasing the vehicular traffic over the track. Xavier objects to this change in use.", "question": "Which of the following best describes whether Xavier can restrict Wesley's use of the track?", "options": {"A": "Xavier cannot restrict Wesley’s use, as a right of way \"for agricultural purposes\" extends to any use related to the property.", "B": "Xavier can restrict Wesley’s use to agricultural purposes only, as specified in the original grant, and the adventure park use exceeds this.", "C": "Xavier can only restrict Wesley's use if he can prove that the increased traffic is causing significant damage to the track.", "D": "Wesley’s change of use is permissible as long as he compensates Xavier for any increased maintenance costs.", "E": "The permissibility of Wesley’s use depends on whether the adventure park generates more traffic than the previous agricultural use."}, "answer": "B", "explanation": null}, {"id": 30, "topic": "Land Law — Chapter 3: Easements", "stem": "Yasmine owns \"Forest Edge,\" a property that has a right of way over a path, \" woodland path,\" on the adjacent land, \" Whispering Pines,\" owned by Zachary. The right of way has not been used for over 30 years. Zachary, believing the easement to be abandoned, plants a dense hedge across the path, completely obstructing it. Yasmine now wishes to sell Forest Edge, and potential buyers are concerned about the lack of access. Yasmine insists the easement still exists.", "question": "Which of the following best describes whether the easement over Woodland Path still exists?", "options": {"A": "The easement still exists, as mere non-use for any period does not constitute abandonment.", "B": "The easement has been abandoned due to the long period of non-use and Zachary’s obstruction of the path.", "C": "The easement’s existence depends on whether Yasmine or her predecessors in title formally released the easement.", "D": "The easement still exists unless Zachary obtained a court order to extinguish it due to abandonment.", "E": "The easement has been abandoned if Zachary can prove that Yasmine and her predecessors in title had no intention of using it."}, "answer": "E", "explanation": null}, {"id": 31, "topic": "Land Law — Chapter 4: Freehold Covenants", "stem": "Olivia sold part of her freehold land, \"The Laurels,\" to Peter in 2010. In the transfer deed, Peter covenanted with Olivia, for the benefit of her retained land, \"The Willows,\" not to build any structure on The Laurels exceeding one storey in height. Peter has now sold The Laurels to Quentin. Quentin is planning to build a two-storey extension. Olivia seeks to prevent this, arguing that the covenant is binding on Quentin.", "question": "Which of the following best describes whether the restrictive covenant is binding on Quentin?", "options": {"A": "The covenant is not binding on Quentin because he was not a party to the original covenant between Olivia and Peter.", "B": "The covenant is binding on Quentin because restrictive covenants run with the land in equity, provided certain conditions are met.", "C": "The covenant is only binding on Quentin if it was registered as a land charge against Peter's title.", "D": "The covenant is only binding on Quentin if he had actual notice of it when he purchased The Laurels.", "E": "The covenant is not binding on Quentin because it relates to building on the land, which is a positive action."}, "answer": "B", "explanation": null}, {"id": 32, "topic": "Land Law — Chapter 4: Freehold Covenants", "stem": "Robert owned two adjacent freehold properties, \"Eastacre\" and \"Westacre.\" In 2015, he sold Westacre to Sarah, and in the transfer deed, Sarah covenanted with Robert and his successors in title to maintain the boundary fence between Eastacre and Westacre. Robert has now sold Eastacre to Trevor. The boundary fence has fallen into disrepair. Trevor wants to compel Sarah to repair it.", "question": "Which of the following best describes whether Trevor can enforce the covenant against Sarah?", "options": {"A": "Trevor cannot enforce the covenant because he was not a party to the original covenant between Robert and Sarah.", "B": "Trevor can enforce the covenant because the burden of a covenant to maintain a boundary fence runs with the land at common law.", "C": "Trevor can enforce the covenant if the benefit of the covenant to maintain the fence has been annexed to Eastacre.", "D": "Trevor can only enforce the covenant if it was expressly assigned to him by Robert.", "E": "Trevor cannot enforce the covenant because it is a positive covenant requiring Sarah to spend money."}, "answer": "C", "explanation": null}, {"id": 33, "topic": "Land Law — Chapter 4: Freehold Covenants", "stem": "Ursula sold part of her freehold land, \"Hillside Farm,\" to Vincent in 2018. In the transfer deed, Vincent covenanted with Ursula to contribute 25% of the cost of maintaining the private road that served both Hillside Farm and Ursula's retained land, \"Valley View.\" Vincent has now sold Hillside Farm to Wendy. The road needs repair, and Ursula seeks a contribution from Wendy.", "question": "Which of the following best describes whether Ursula can enforce the covenant against Wendy?", "options": {"A": "Ursula cannot enforce the covenant against Wendy because the burden of a positive covenant does not run with the land.", "B": "Ursula can enforce the covenant against Wendy because covenants relating to shared facilities run with the land.", "C": "Ursula can enforce the covenant against Wendy if the benefit and burden of the covenant have passed to Wendy.", "D": "Ursula can only enforce the covenant against Wendy if it was registered as a land charge against Vincent's title.", "E": "Ursula can enforce the covenant against Wendy under the principle of mutual benefit and burden."}, "answer": "A", "explanation": null}, {"id": 34, "topic": "Land Law — Chapter 4: Freehold Covenants", "stem": "Xavier owned a large estate and sold a plot of land, \"Sunnyside,\" to Yvonne in 2012. In the transfer deed, Yvonne covenanted with Xavier and his successors in title that Sunnyside would only be used for residential purposes. Xavier has now sold the remainder of his estate to Zoe. Yvonne is planning to open a commercial dog grooming business on Sunnyside. Zoe seeks to prevent this.", "question": "Which of the following best describes whether Zoe can enforce the restrictive covenant against Yvonne?", "options": {"A": "Zoe cannot enforce the covenant because she was not a party to the original covenant between Xavier and Yvonne.", "B": "Zoe can enforce the covenant if the benefit of the covenant has been annexed to the land now owned by Zoe.", "C": "Zoe can only enforce the covenant if it was expressly assigned to her by Xavier.", "D": "Zoe can only enforce the covenant if she had actual knowledge of it when she purchased the remainder of the estate.", "E": "Zoe cannot enforce the covenant because it restricts the use of Yvonne's land."}, "answer": "B", "explanation": null}, {"id": 35, "topic": "Land Law — Chapter 4: Freehold Covenants", "stem": "Adam and Beth owned adjacent freehold properties. In 2016, they entered into a mutual covenant in a deed, where Adam covenanted with Beth to maintain the boundary wall on Adam's land, and Beth covenanted with Adam not to build any structure on her land that would block the light to Adam's conservatory. Adam has now sold his property to Charles, and Beth has sold her property to Diana. The boundary wall on Charles's land has fallen into disrepair, and Diana has started building a structure that will block light to Charles's conservatory.", "question": "Which of the following best describes whether Charles can enforce Beth's covenant, and whether Diana is bound by it?", "options": {"A": "Charles can enforce Beth's covenant, and Diana is bound by it because mutual covenants run with the land at common law.", "B": "Charles cannot enforce Beth's covenant, and Diana is not bound by it because they were not original parties to the covenant.", "C": "Charles can enforce Beth's covenant if the benefit has been annexed to Adam's land, and Diana is bound by it if the burden of a restrictive covenant runs in equity.", "D": "Charles can only enforce Beth's covenant if it was expressly assigned to him, and Diana is only bound if she had notice of it.", "E": "Charles can enforce Beth's covenant under the principle of mutual benefit and burden, and Diana is bound by it if it was registered as a land charge."}, "answer": "C", "explanation": null}, {"id": 36, "topic": "Land Law — Chapter 4: Freehold Covenants", "stem": "Gareth sold part of his freehold property, \"Oaklands,\" to Helena in 2019. In the transfer deed, Helena covenanted with Gareth to maintain the driveway that served both Oaklands and Gareth's retained property, \"Sunnyside.\" The driveway has fallen into disrepair, and Gareth has now sold Sunnyside to Imran. Imran seeks to enforce the covenant against Helena.", "question": "Which of the following factors will be most crucial in determining whether Imran can enforce the positive covenant to maintain the driveway against Helena?", "options": {"A": "Whether the covenant touches and concerns the land (Sunnyside).", "B": "Whether the benefit of the covenant was expressly assigned to Imran by Gareth.", "C": "Whether the burden of the covenant has passed to Helena's successors in title.", "D": "Whether the covenant was registered as a land charge.", "E": "Whether Imran had actual notice of the covenant when he purchased Sunnyside."}, "answer": "B", "explanation": null}, {"id": 37, "topic": "Land Law — Chapter 4: Freehold Covenants", "stem": "Justine owned a residential estate and sold a plot of land, \"Rosewood,\" to Kevin in 2020. In the transfer deed, Kevin covenanted with Justine and her successors in title not to use Rosewood for any commercial purpose. Justine has now died, and her estate has been inherited by her daughter, Laura. Kevin has started operating a small accountancy practice from his home at Rosewood. Laura seeks to enforce the covenant.", "question": "Which of the following best describes Laura's ability to enforce the restrictive covenant against Kevin?", "options": {"A": "Laura can automatically enforce the covenant as Justine's successor in title.", "B": "Laura can only enforce the covenant if the benefit of the covenant was annexed to Justine's retained land.", "C": "Laura can only enforce the covenant if the covenant was registered as a land charge.", "D": "Laura cannot enforce the covenant because it is a personal covenant with Justine.", "E": "Laura can enforce the covenant under the principle of privity of contract."}, "answer": "B", "explanation": null}, {"id": 38, "topic": "Land Law — Chapter 4: Freehold Covenants", "stem": "Michael and Natalie owned adjacent freehold properties and entered into a mutual covenant in 2021. Michael covenanted to keep his garden neatly maintained for the benefit of Natalie's property, and Natalie covenanted not to cause excessive noise after 10 pm for the benefit of Michael's property. Michael has sold his property to Oliver, who is a keen gardener. Natalie has sold her property to Priya, who frequently hosts loud parties late at night. Oliver seeks to enforce Natalie's covenant against Priya.", "question": "Which of the following best describes whether Oliver can enforce Natalie's covenant against Priya?", "options": {"A": "Oliver can enforce the covenant, and Priya is bound because mutual covenants run with the land.", "B": "Oliver cannot enforce the covenant, and Priya is not bound because they were not original parties.", "C": "Oliver can enforce the covenant if the benefit was annexed to Michael's land, and Priya is bound if the burden of a restrictive covenant runs in equity.", "D": "Oliver can only enforce the covenant if it was expressly assigned to him, and Priya is only bound if she had notice.", "E": "Oliver can enforce the covenant under the principle of mutual benefit and burden, and Priya is bound if it was registered."}, "answer": "C", "explanation": null}, {"id": 39, "topic": "Land Law — Chapter 4: Freehold Covenants", "stem": "Quentin sold part of his land, \"The Brambles,\" to Rachel in 2022. In the transfer deed, Rachel covenanted with Quentin to build a fence along the boundary within one year. Rachel never built the fence, and Quentin has now sold his retained land, \"The Thorns,\" to Simon. Simon wishes to compel Rachel to build the fence.", "question": "Which of the following best describes whether Simon can enforce the covenant against Rachel?", "options": {"A": "Simon can enforce the covenant because the benefit of a covenant to build runs with the land.", "B": "Simon cannot enforce the covenant because it is a positive covenant requiring Rachel to spend money.", "C": "Simon can only enforce the covenant if it was expressly assigned to him by Quentin.", "D": "Simon can enforce the covenant if it touches and concerns The Thorns and the benefit was annexed.", "E": "Simon can enforce the covenant if it was registered as a land charge."}, "answer": "D", "explanation": null}, {"id": 40, "topic": "Land Law — Chapter 4: Freehold Covenants", "stem": "Tessa owned a property and sold part of it, \"Greenview,\" to Uma in 2023. In the transfer deed, Uma covenanted with Tessa not to allow any animals to be kept at Greenview. Tessa has now sold her retained land, \"Parkside,\" to Vikram. Uma is now keeping several dogs at Greenview, causing a nuisance to Vikram. Vikram seeks to enforce the covenant.", "question": "Which of the following is the most likely requirement for Vikram to successfully enforce the restrictive covenant against Uma?", "options": {"A": "Vikram must prove that he was aware of the covenant when he purchased Parkside.", "B": "Vikram must demonstrate that the covenant benefits Parkside and that the benefit was annexed to it.", "C": "Vikram must obtain an express assignment of the covenant from Tessa.", "D": "Vikram must show that Uma had notice of the covenant.", "E": "Vikram must prove that keeping dogs constitutes a commercial use of the property."}, "answer": "B", "explanation": null}, {"id": 41, "topic": "Land Law — Chapter 5: Mortgages", "stem": "Alan borrows £300,000 from \"Secure Loans PLC,\" secured by a legal mortgage over his freehold property, \"Rose Cottage.\" The mortgage deed contains a clause stating that Alan cannot redeem the mortgage for a period of 30 years. After 10 years, Alan's financial situation improves significantly, and he wishes to pay off the mortgage. Secure Loans PLC insists that the clause is binding.", "question": "Which of the following best describes the enforceability of the clause preventing redemption for 30 years?", "options": {"A": "The clause is fully enforceable as it is a term of the freely negotiated mortgage agreement.", "B": "The clause is unenforceable as it constitutes a clog or fetter on the equity of redemption.", "C": "The clause is unenforceable if Alan can demonstrate that the interest rate is excessively high.", "D": "The clause is unenforceable after 20 years, as mortgages are typically for a term of 25 years.", "E": "The clause is enforceable if it is common practice in the mortgage industry."}, "answer": "B", "explanation": null}, {"id": 42, "topic": "Land Law — Chapter 5: Mortgages", "stem": "Beth grants a legal mortgage over her registered freehold property, \"Green View,\" to \"Lender Finance Ltd.\" The mortgage deed contains a clause giving Lender Finance Ltd. an option to purchase Green View at any time during the mortgage term. Beth is now in financial difficulty, and Lender Finance Ltd. seeks to exercise this option at a price significantly below the current market value.", "question": "Which of the following best describes the enforceability of the option to purchase in the mortgage deed?", "options": {"A": "The option to purchase is fully enforceable as it is a term of the mortgage agreement.", "B": "The option to purchase is unenforceable as it is void as a clog on the equity of redemption.", "C": "The option to purchase is unenforceable if Beth can prove she was under duress when she signed the mortgage deed.", "D": "The option to purchase is enforceable if it was properly registered against Beth's title.", "E": "The option to purchase is unenforceable if the interest rate on the mortgage is above the market rate."}, "answer": "B", "explanation": null}, {"id": 43, "topic": "Land Law — Chapter 5: Mortgages", "stem": "Charles defaults on his mortgage payments to \"United Bank.\" The mortgage is a legal mortgage over his registered freehold property, \"The Hollies.\" United Bank obtains a court order for possession. When the bank's bailiffs arrive to evict Charles, they discover that his elderly and infirm mother, Diana, also resides at The Hollies. Diana claims she has a right to remain in the property.", "question": "Which of the following best describes Diana's potential rights to remain at The Hollies and the bank's ability to obtain possession?", "options": {"A": "Diana has no right to remain as the bank has a possession order against the legal owner, Charles.", "B": "Diana may have a right to remain if she has home rights under the Family Law Act 1996 that have been registered.", "C": "Diana has a right to remain if she can prove she has contributed to the mortgage payments.", "D": "Diana has a right to remain indefinitely due to her vulnerable status.", "E": "Diana's rights depend on whether she was aware of the mortgage when she moved into the property."}, "answer": "B", "explanation": null}, {"id": 44, "topic": "Land Law — Chapter 5: Mortgages", "stem": "Eleanor grants a legal mortgage over her unregistered freehold property, \"Riverside,\" to \"County Building Society\" in 2020. County Building Society fails to register its mortgage as a land charge. Eleanor subsequently sells Riverside to Frank in 2023. Frank purchases the property without actual knowledge of the mortgage. County Building Society now seeks to enforce its mortgage against Frank.", "question": "Which of the following best describes whether County Building Society's mortgage is binding on Frank?", "options": {"A": "The mortgage is binding on Frank because it was a legal mortgage.", "B": "The mortgage is not binding on Frank because County Building Society failed to register it as a land charge, and Frank purchased without notice.", "C": "The mortgage is binding on Frank if it was created by deed.", "D": "The mortgage is binding on Frank if County Building Society can prove Eleanor used the mortgage funds to purchase the property.", "E": "The mortgage's validity against Frank depends on whether he conducted proper searches."}, "answer": "B", "explanation": null}, {"id": 45, "topic": "Land Law — Chapter 5: Mortgages", "stem": "George grants a legal mortgage over his registered freehold property, \"Sunnyvale,\" to \"Prime Lending Ltd.\" George subsequently grants a second legal mortgage over Sunnyvale to \"Secondary Finance PLC\" without informing Prime Lending Ltd. George then defaults on both mortgages. Secondary Finance PLC seeks to sell Sunnyvale as a mortgagee in possession.", "question": "Which of the following best describes the priority of the mortgages on the proceeds of sale?", "options": {"A": "Secondary Finance PLC has priority as they are the mortgagee seeking to sell.", "B": "Prime Lending Ltd. has priority as their mortgage was created first.", "C": "The proceeds of sale will be divided equally between Prime Lending Ltd. and Secondary Finance PLC.", "D": "The priority depends on which mortgage was registered first at the Land Registry.", "E": "Secondary Finance PLC only has priority over the proceeds remaining after Prime Lending Ltd. has been fully repaid."}, "answer": "D", "explanation": null}, {"id": 46, "topic": "Land Law — Chapter 5: Mortgages", "stem": "Harriet grants a legal mortgage over her registered freehold property, \"Willowbrook,\" to \"Secure Funding Ltd.\" The mortgage deed contains a clause stating that if Harriet defaults on any payment, the entire outstanding balance will become immediately due and payable. Harriet misses one monthly payment due to a temporary cash flow issue. Secure Funding Ltd. seeks to enforce the clause and demand the entire balance.", "question": "Which of the following best describes the likely enforceability of the clause making the entire balance immediately due?", "options": {"A": "The clause is automatically enforceable as it is a standard term in mortgage agreements.", "B": "The clause may be unenforceable if Harriet can demonstrate that the missed payment was minor and the enforcement is disproportionate.", "C": "The clause is unenforceable unless Secure Funding Ltd. has first provided Harriet with a formal notice of default.", "D": "The clause is unenforceable if the interest rate on the mortgage is above the market rate.", "E": "The clause is only enforceable with a court order."}, "answer": "B", "explanation": null}, {"id": 47, "topic": "Land Law — Chapter 5: Mortgages", "stem": "Ian grants a legal mortgage over his registered leasehold property to \"Prime Mortgages PLC.\" The lease contains a covenant against assigning the lease without the landlord's consent. Ian subsequently defaults on the mortgage, and Prime Mortgages PLC seeks to exercise its power of sale.", "question": "Which of the following best describes Prime Mortgages PLC's ability to sell the leasehold property?", "options": {"A": "Prime Mortgages PLC can sell the leasehold property without the landlord's consent as the mortgage overrides the lease covenant.", "B": "Prime Mortgages PLC can only sell the leasehold property with the landlord's consent, in accordance with the lease covenant.", "C": "Prime Mortgages PLC can apply to the court for an order for sale, which may override the lease covenant.", "D": "Prime Mortgages PLC can only sell the leasehold property to a buyer approved by the landlord.", "E": "Prime Mortgages PLC's ability to sell depends on whether the mortgage deed expressly addresses the issue of assignment."}, "answer": "B", "explanation": null}, {"id": 48, "topic": "Land Law — Chapter 5: Mortgages", "stem": "Jasmine grants a legal mortgage over her registered freehold property, \"The Anchorage,\" to \"Coastal Bank.\" Jasmine falls into arrears with her mortgage payments. Coastal Bank obtains a possession order and sells The Anchorage. The sale price is significantly below market value, and Jasmine believes the bank did not take reasonable care to obtain the best price reasonably obtainable.", "question": "Which of the following best describes Jasmine's potential remedies against Coastal Bank?", "options": {"A": "Jasmine has no remedy as the bank was entitled to sell the property following a possession order.", "B": "Jasmine can sue the bank for the difference between the actual sale price and the price that could have been reasonably obtained.", "C": "Jasmine's only remedy is to apply to the court to set aside the sale.", "D": "Jasmine can sue the bank for breach of contract if the mortgage deed contained a clause requiring the bank to obtain market value.", "E": "Jasmine's remedies are limited to claiming any surplus funds after the bank has recovered its debt."}, "answer": "B", "explanation": null}, {"id": 49, "topic": "Land Law — Chapter 5: Mortgages", "stem": "Kevin grants a legal mortgage over his unregistered freehold property, \"Hilltop House,\" to \"Nationwide Finance.\" Nationwide Finance takes possession of the property following Kevin's default. While in possession, Nationwide Finance leases the property to a tenant at a rent significantly below the market rate.", "question": "Which of the following best describes Nationwide Finance's duties as a mortgagee in possession?", "options": {"A": "Nationwide Finance has no duty to Kevin regarding the management of the property once they are in possession.", "B": "Nationwide Finance has a duty to take reasonable care to obtain a proper rent for the property while in possession.", "C": "Nationwide Finance's primary duty is to sell the property as quickly as possible to recover their debt.", "D": "Nationwide Finance can lease the property at any rent they deem reasonable.", "E": "Nationwide Finance's duties depend on the terms of the mortgage deed."}, "answer": "B", "explanation": null}, {"id": 50, "topic": "Land Law — Chapter 5: Mortgages", "stem": "Liam grants a legal mortgage over his registered freehold property, \"Valley View,\" to \"Premier Credit Ltd.\" Liam subsequently grants a second legal mortgage to \"Discount Loans PLC,\" which is noted on the register. Liam defaults on both mortgages. Premier Credit Ltd. seeks to exercise its power of sale.", "question": "Which of the following best describes the position of Discount Loans PLC in relation to the sale by Premier Credit Ltd.?", "options": {"A": "Discount Loans PLC has the right to prevent the sale by Premier Credit Ltd.", "B": "Discount Loans PLC is entitled to receive notice of the sale from Premier Credit Ltd.", "C": "Discount Loans PLC has priority over the proceeds of sale as their mortgage was noted on the register.", "D": "Discount Loans PLC is only entitled to any surplus proceeds of sale remaining after Premier Credit Ltd. has been fully repaid.", "E": "Discount Loans PLC has the right to conduct the sale instead of Premier Credit Ltd."}, "answer": "D", "explanation": null}, {"id": 51, "topic": "Land Law — Chapter 6: Leases", "stem": "In 2010, Laura, the freehold owner of a commercial property, \"Tech Hub,\" granted a 25-year lease to \"Innovate Solutions Ltd.\" The lease contained a clause preventing Innovate Solutions Ltd. from assigning the lease without Laura's prior written consent, such consent not to be unreasonably withheld. In 2018, Innovate Solutions Ltd. assigned the lease to \"Digital Dynamics PLC\" with Laura's consent. Digital Dynamics PLC is now in financial difficulty and wishes to assign the lease to \"EconoTech Ltd,\" a company with a questionable financial history. Laura has refused consent to this assignment. Digital Dynamics PLC argues that Laura's refusal is unreasonable and wishes to proceed with the assignment.", "question": "Which of the following best describes Laura's ability to refuse consent to the assignment of the lease?", "options": {"A": "Laura can refuse consent, as the alienation clause gives her absolute discretion.", "B": "Laura cannot refuse consent, as the clause states consent cannot be unreasonably withheld, and assigning the lease is a fundamental right of a tenant.", "C": "Laura's refusal is likely to be considered unreasonable, as EconoTech Ltd.'s financial history is not a relevant factor.", "D": "Laura's refusal is likely to be considered reasonable if she can provide evidence that EconoTech Ltd.'s financial instability could jeopardize the rent payments.", "E": "Laura can only refuse consent if the lease explicitly states the grounds on which consent can be withheld."}, "answer": "D", "explanation": null}, {"id": 52, "topic": "Land Law — Chapter 6: Leases", "stem": "In 2005, Robert granted a 99-year lease of a residential property, \"Seaview Cottage,\" to Emily. The lease contained a covenant requiring Emily to keep the property in good repair. In 2018, Emily assigned the lease to Frederick. Frederick has neglected the property, and it has fallen into a state of disrepair. Robert has served Frederick with a notice to remedy the disrepair but Frederick has failed to take any action. Robert now wishes to take action to enforce the repair covenant.", "question": "Which of the following best describes Robert's options for enforcing the repair covenant?", "options": {"A": "Robert can only take action against Emily, as she is the original tenant and bound by the covenant.", "B": "Robert can take action against Frederick based on privity of estate, as the burden of the covenant has passed to him.", "C": "Robert can forfeit the lease without needing a court order, as Frederick is in breach of the repair covenant.", "D": "Robert's only remedy is to sue Frederick for damages, as forfeiture is not available for a breach of a repair covenant.", "E": "Robert must first seek permission from the court before taking any action against Frederick."}, "answer": "B", "explanation": null}, {"id": 53, "topic": "Land Law — Chapter 6: Leases", "stem": "Susan owns the freehold of a building and granted a 15-year lease of the ground floor to \"Fashion Forward Ltd\" in 2012. The lease contained a clause allowing Susan to re-enter the property if the rent was unpaid for 21 days. In 2019, Fashion Forward Ltd. assigned the lease to \"Trendy Styles Ltd.\" Trendy Styles Ltd. has failed to pay rent for the past two months. Susan has served a notice on Trendy Styles Ltd. demanding payment of the arrears but Trendy Styles Ltd. has not paid. Susan wishes to forfeit the lease.", "question": "Which of the following steps must Susan take to forfeit the lease?", "options": {"A": "Susan can immediately re-enter the property and terminate the lease.", "B": "Susan must obtain a court order for possession before forfeiting the lease.", "C": "Susan can only forfeit the lease if the arrears remain unpaid for at least three months.", "D": "Susan must serve a further notice on Fashion Forward Ltd. before forfeiting the lease.", "E": "Susan cannot forfeit the lease as it is a commercial property."}, "answer": "B", "explanation": null}, {"id": 54, "topic": "Land Law — Chapter 6: Leases", "stem": "In 2008, \"Industrial Properties Ltd\" granted a 10-year lease of a warehouse to \"Haulage Solutions PLC.\" The lease contained a clause requiring Haulage Solutions PLC to pay a service charge for the maintenance of the common areas of the industrial estate. In 2016, with the lease due to expire in 2018, Haulage Solutions PLC agreed with Industrial Properties Ltd. to continue occupying the warehouse on a month-to-month basis. Haulage Solutions PLC has now vacated the property without paying the outstanding service charge. Industrial Properties Ltd. seeks to recover the unpaid service charge.", "question": "Which of the following best describes Industrial Properties Ltd.'s ability to recover the service charge?", "options": {"A": "Industrial Properties Ltd. cannot recover the service charge, as the original lease has expired.", "B": "Industrial Properties Ltd. can recover the service charge for the period Haulage Solutions PLC occupied the property on a month-to-month basis, as this created a periodic tenancy.", "C": "Industrial Properties Ltd. can only recover the service charge if Haulage Solutions PLC had explicitly agreed to continue paying it during the month-to-month arrangement.", "D": "Industrial Properties Ltd.'s ability to recover the service charge depends on whether the month-to-month arrangement was documented in writing.", "E": "Industrial Properties Ltd. can recover the service charge as a debt, regardless of the lease's expiration."}, "answer": "B", "explanation": null}, {"id": 55, "topic": "Land Law — Chapter 6: Leases", "stem": "Thomas granted a lease of a retail unit to \"Boutique Ltd\" in 2015. The lease contained a covenant by Thomas to insure the building. In 2020, a fire caused significant damage to the property due to Thomas's failure to insure it. Boutique Ltd. has suffered substantial losses as a result of the damage and wishes to take action against Thomas.", "question": "Which of the following best describes Boutique Ltd.'s potential remedies against Thomas?", "options": {"A": "Boutique Ltd. can only claim damages from Thomas for breach of the covenant to insure.", "B": "Boutique Ltd. can terminate the lease for Thomas's breach of covenant.", "C": "Boutique Ltd. can carry out the repairs themselves and deduct the cost from future rent payments.", "D": "Boutique Ltd. can seek an injunction to compel Thomas to insure the property.", "E": "Boutique Ltd. has no remedy against Thomas."}, "answer": "A", "explanation": null}, {"id": 56, "topic": "Land Law — Chapter 6: Leases", "stem": "In 2016, \"Property Holdings Ltd.\" granted a 7-year lease of a retail unit to \"Bespoke Tailors Ltd.\" The lease contained a break clause allowing either party to terminate the lease at the end of the third year by giving six months' written notice. In 2019, \"Property Holdings Ltd.\" sold the freehold reversion to \"Investment Group PLC.\" Bespoke Tailors Ltd. now wishes to exercise the break clause. They served the notice on \"Property Holdings Ltd.,\" believing them to still be the landlord. Investment Group PLC argues that the notice is invalid as it was not served on them.", "question": "Which of the following best describes the validity of the break clause notice served by Bespoke Tailors Ltd.?", "options": {"A": "The notice is valid as it was served on the original landlord who granted the lease.", "B": "The notice is invalid as it was not served on the current landlord, Investment Group PLC, who now holds the reversion.", "C": "The notice is valid if \"Property Holdings Ltd.\" forwarded it to Investment Group PLC within a reasonable time.", "D": "The validity of the notice depends on whether Bespoke Tailors Ltd. was formally notified of the change in landlord.", "E": "The notice is only valid if the break clause explicitly stated who the notice should be served on."}, "answer": "B", "explanation": null}, {"id": 57, "topic": "Land Law — Chapter 6: Leases", "stem": "In 2010, Eleanor granted a 12-year lease of a commercial unit to \"Global Traders Ltd.\" The lease contained a covenant by Eleanor to keep the exterior of the building in good repair. In 2022, Eleanor sold the freehold reversion to \"Regal Estates PLC.\" The exterior of the building is now in significant disrepair, causing loss of business to Global Traders Ltd. Global Traders Ltd. wishes to take action to compel Regal Estates PLC to carry out the repairs.", "question": "Which of the following best describes Global Traders Ltd.'s ability to enforce the repair covenant against Regal Estates PLC?", "options": {"A": "Global Traders Ltd. can only take action against Eleanor, as she was the original landlord and covenanted to repair.", "B": "Global Traders Ltd. can take action against Regal Estates PLC because the burden of the landlord's repair covenant runs with the reversion.", "C": "Global Traders Ltd. can only take action against Regal Estates PLC if the reversion was expressly assigned to them.", "D": "Global Traders Ltd. cannot take action against Regal Estates PLC, as landlord covenants do not bind successors in title.", "E": "Global Traders Ltd. must first serve a notice on Eleanor before taking action against Regal Estates PLC."}, "answer": "B", "explanation": null}, {"id": 58, "topic": "Land Law — Chapter 6: Leases", "stem": "Frederick granted a 5-year lease of a shop to \"Local Grocers Ltd.\" The lease contained a clause prohibiting Local Grocers Ltd. from using the premises for the sale of alcohol. After three years, Local Grocers Ltd. started selling a small selection of locally brewed beers. Frederick, who owns a competing off-licence nearby, seeks an injunction to prevent Local Grocers Ltd. from selling alcohol.", "question": "Which of the following best describes Frederick's ability to obtain an injunction?", "options": {"A": "Frederick is automatically entitled to an injunction as Local Grocers Ltd. is in breach of a restrictive covenant.", "B": "Frederick must demonstrate that the breach of covenant is causing him significant financial loss to obtain an injunction.", "C": "The court will only grant an injunction if the lease explicitly stated that breach of the covenant would result in such action.", "D": "The court will consider the balance of hardship between Frederick and Local Grocers Ltd. before granting an injunction.", "E": "Frederick cannot obtain an injunction as the covenant restricts the tenant's business use, which is generally frowned upon."}, "answer": "D", "explanation": null}, {"id": 59, "topic": "Land Law — Chapter 6: Leases", "stem": "In 2017, \"Commercial Lettings Ltd.\" granted a 10-year lease of office space to \"Software Solutions Inc.\" The lease contained a rent review clause stating that the rent would be reviewed at the end of the fifth year to the then current market rent as determined by an independent surveyor appointed jointly by the parties. At the end of the fifth year, the parties cannot agree on a surveyor. Software Solutions Inc. argues that the rent review clause is now inoperable.", "question": "Which of the following best describes the likely outcome regarding the rent review?", "options": {"A": "The rent review clause is void for uncertainty as the mechanism for appointing a surveyor has failed.", "B": "The court will appoint a surveyor to determine the market rent, giving effect to the clause.", "C": "The rent will remain at the original level for the remainder of the lease term.", "D": "\"Commercial Lettings Ltd.\" can appoint their own surveyor to determine the market rent.", "E": "The rent review will be based on the Retail Prices Index (RPI) as a default mechanism."}, "answer": "B", "explanation": null}, {"id": 60, "topic": "Land Law — Chapter 6: Leases", "stem": "Grace granted a 20-year lease of a restaurant to \"Culinary Delights Ltd.\" In 2023, after 15 years, Culinary Delights Ltd. wished to surrender the lease early. Grace agreed to accept the surrender, provided Culinary Delights Ltd. paid a surrender premium. Before the premium was paid or a formal deed of surrender executed, Grace died. Her freehold reversion passed to her son, Henry. Henry now refuses to accept the surrender.", "question": "Which of the following best describes Henry's position regarding the agreed surrender?", "options": {"A": "Henry is bound by his mother's agreement to accept the surrender.", "B": "Henry is not bound by his mother's agreement as there was no formal deed of surrender.", "C": "Henry can choose whether or not to accept the surrender.", "D": "Henry is only bound if the surrender premium is paid.", "E": "Henry's position depends on whether he was aware of his mother's agreement before her death."}, "answer": "B", "explanation": null}, {"id": 61, "topic": "Land Law — Chapter 7: Unregistered Land", "stem": "Arthur purchased a property, \"Greenacre,\" in 1990. The title to Greenacre is unregistered. In 1995, Arthur granted a legal mortgage over Greenacre to \"Lender Bank PLC.\" The mortgage was not registered as a land charge. In 2024, Arthur sold Greenacre to Emily. Emily had no knowledge of the mortgage.", "question": "Which of the following best describes whether the mortgage is binding on Emily?", "options": {"A": "The mortgage is binding on Emily because it is a legal mortgage.", "B": "The mortgage is not binding on Emily because it was not registered as a land charge, and she had no knowledge of it.", "C": "The mortgage is binding on Emily only if Lender Bank PLC can prove that Arthur informed her of its existence.", "D": "The mortgage is not binding on Emily unless she agrees to take on the mortgage.", "E": "The mortgage's validity depends on whether Lender Bank PLC is a commercial lender."}, "answer": "B", "explanation": null}, {"id": 62, "topic": "Land Law — Chapter 7: Unregistered Land", "stem": "Frank is the freehold owner of \"Willow Cottage,\" an unregistered property. In 2018, he granted a restrictive covenant to his neighbor, Grace, preventing the building of any structure on Willow Cottage that would obstruct Grace's view. Frank has now sold Willow Cottage to Henry.", "question": "Which of the following best describes whether the restrictive covenant is binding on Henry?", "options": {"A": "The restrictive covenant is automatically binding on Henry because restrictive covenants always bind successors in title.", "B": "The restrictive covenant is not binding on Henry unless it was registered as a land charge.", "C": "The restrictive covenant is only binding on Henry if he had actual knowledge of it.", "D": "The restrictive covenant is binding on Henry only if Grace obtains a court order to enforce it.", "E": "The restrictive covenant is not binding on Henry as it is a personal agreement between Frank and Grace."}, "answer": "B", "explanation": null}, {"id": 63, "topic": "Land Law — Chapter 7: Unregistered Land", "stem": "Ian is selling his unregistered property, \"Hillside Farm,\" to Jasmine. As part of the sale process, Ian provides Jasmine with an epitome of title.", "question": "Which of the following best describes the purpose of the epitome of title?", "options": {"A": "To provide a summary of all past owners of the property.", "B": "To guarantee that the seller has the right to sell the property.", "C": "To give the buyer a summary of the key documents that prove the seller's ownership.", "D": "To outline any future plans for development of the property.", "E": "To provide an estimate of the property's current market value."}, "answer": "C", "explanation": null}, {"id": 64, "topic": "Land Law — Chapter 7: Unregistered Land", "stem": "Kevin owns an unregistered property called \"The Woodlands.\" In 2015, he granted his sister, Laura, an equitable easement to cross The Woodlands to access the adjacent road. This easement was not registered as a land charge. In 2024, Kevin sold The Woodlands to Michael. Michael was unaware of the easement.", "question": "Which of the following best describes whether the equitable easement is binding on Michael?", "options": {"A": "The equitable easement is automatically binding on Michael.", "B": "The equitable easement is binding on Michael only if he had actual notice of it.", "C": "The equitable easement is not binding on Michael because it was not registered as a land charge.", "D": "The equitable easement is binding on Michael if it is deemed to be an interest that overrides.", "E": "The equitable easement's validity depends on the purpose for which Laura uses it."}, "answer": "B", "explanation": null}, {"id": 65, "topic": "Land Law — Chapter 7: Unregistered Land", "stem": "Olivia is purchasing unregistered land from Peter. During the transaction, it is discovered that Peter's title deeds include a covenant from 1985 that restricts the use of the land to agricultural purposes only. Olivia intends to build a residential dwelling on the land.", "question": "Which of the following best describes Olivia's position regarding the restrictive covenant?", "options": {"A": "Olivia is automatically bound by the restrictive covenant.", "B": "Olivia is not bound by the restrictive covenant as it is more than 30 years old.", "C": "Olivia is only bound by the restrictive covenant if she expressly agrees to it.", "D": "Olivia is bound by the restrictive covenant if it was registered as a land charge.", "E": "Olivia can ignore the restrictive covenant as it unreasonably restricts the use of the land."}, "answer": "D", "explanation": null}, {"id": 66, "topic": "Land Law — Chapter 7: Unregistered Land", "stem": "Patricia owned \"Rose Cottage,\" unregistered freehold land. In 2010, she granted a legal right of way over Rose Cottage to her neighbor, Quentin, for the benefit of his land, \"Sunnyside.\" This right of way was never registered as a land charge. In 2025, Patricia sold Rose Cottage to Richard. Richard's solicitor conducted a full search of the Land Charges Register against Patricia's name for the relevant period but found no entries. Richard was unaware of Quentin's right of way.", "question": "Which of the following best describes whether Quentin's right of way is binding on Richard?", "options": {"A": "Quentin's legal right of way is automatically binding on Richard, regardless of registration.", "B": "Quentin's legal right of way is only binding on Richard if Richard had actual notice of it.", "C": "Quentin's legal right of way is not binding on Richard because it was not registered as a land charge.", "D": "Quentin's right of way is an overriding interest and therefore binds Richard.", "E": "The binding nature of Quentin's right of way depends on how frequently he used it."}, "answer": "C", "explanation": null}, {"id": 67, "topic": "Land Law — Chapter 7: Unregistered Land", "stem": "Simon is selling his unregistered freehold property, \"The Old Mill,\" to Teresa. Teresa's solicitor has examined the epitome of title and is concerned about a series of complex trust deeds dating back over 50 years.", "question": "Which of the following principles is most relevant to Teresa's solicitor's assessment of whether these trust deeds pose a risk to Teresa's future ownership?", "options": {"A": "The principle of indefeasibility of title.", "B": "The doctrine of notice.", "C": "The rule against perpetuities.", "D": "The concept of overreaching.", "E": "The mirror principle."}, "answer": "D", "explanation": null}, {"id": 68, "topic": "Land Law — Chapter 7: Unregistered Land", "stem": "Ursula owned \"Orchard View,\" unregistered freehold land. In 2012, she created an equitable mortgage over Orchard View in favor of \"Friendly Finance Ltd.\" This mortgage was not registered as a land charge. In 2024, Ursula sold Orchard View to Victor. Victor paid the purchase price to two trustees of a trust of land that Ursula had declared in 2010, the details of which were not apparent from the title deeds Victor inspected.", "question": "Which of the following best describes whether Friendly Finance Ltd.'s equitable mortgage is binding on Victor?", "options": {"A": "The equitable mortgage is automatically binding on Victor.", "B": "The equitable mortgage is binding on Victor because he did not conduct a search against the names of the trustees.", "C": "The equitable mortgage is not binding on Victor because it was not registered as a land charge.", "D": "The equitable mortgage has been overreached because Victor paid the purchase money to two trustees.", "E": "The binding nature of the equitable mortgage depends on whether Victor had constructive notice of it."}, "answer": "D", "explanation": null}, {"id": 69, "topic": "Land Law — Chapter 7: Unregistered Land", "stem": "Wendy is purchasing unregistered land, and her solicitor is investigating the title. The epitome of title includes a deed of gift from 1995.", "question": "Which of the following is the primary concern for Wendy's solicitor regarding this deed of gift?", "options": {"A": "Whether the gift was subject to inheritance tax.", "B": "Whether the donor had the mental capacity to make the gift.", "C": "Whether the gift could be challenged by the donor's creditors.", "D": "Whether the deed was properly executed.", "E": "Whether the gift created any overriding interests."}, "answer": "C", "explanation": null}, {"id": 70, "topic": "Land Law — Chapter 7: Unregistered Land", "stem": "Zachary owns \"Brookside,\" unregistered freehold land. His neighbor, Yvonne, has been using a path across Brookside for over 20 years to access the village shop. There has been no permission, secrecy, or force involved in this use. Zachary now wishes to prevent Yvonne from using the path.", "question": "Which of the following best describes Yvonne's potential claim to a right over Zachary's land?", "options": {"A": "Yvonne has an easement of necessity.", "B": "Yvonne has a right arising from proprietary estoppel.", "C": "Yvonne may have acquired a legal easement by prescription.", "D": "Yvonne has an equitable easement due to her long use.", "E": "Yvonne has no right as the land is unregistered."}, "answer": "C", "explanation": null}, {"id": 71, "topic": "Land Law — Chapter 8: Registered Land", "stem": "Amelia is the registered freehold proprietor of \"Oakhaven.\" Ben claims that Amelia holds Oakhaven on trust for herself and Ben in equal shares, based on their contributions to the purchase price ten years ago, although Ben's interest is not noted on the register. Amelia has now entered into a contract to sell Oakhaven to Clara. Clara's solicitor has conducted the usual searches and inspections but has not discovered Ben's claim. Before completion, Ben lodges a restriction on the register preventing any disposition without his consent.", "question": "Which of the following best describes whether Clara will take Oakhaven subject to Ben's beneficial interest?", "options": {"A": "Clara will take free of Ben's interest because it is an equitable interest that is not protected by a notice on the register and she had no actual knowledge of it.", "B": "Clara will take subject to Ben's interest because Ben has now registered a restriction, which protects his prior equitable interest against any subsequent disposition.", "C": "Clara will take subject to Ben's interest if Ben can prove that his interest amounts to an overriding interest under Schedule 3 of the Land Registration Act 2002, such as actual occupation.", "D": "Clara will take free of Ben's interest because the doctrine of notice no longer applies to registered land, and only registered interests are binding.", "E": "Clara's position depends on whether Amelia fraudulently concealed Ben's interest from her."}, "answer": "C", "explanation": null}, {"id": 72, "topic": "Land Law — Chapter 8: Registered Land", "stem": "David is the registered proprietor of \"Riverside Cottage.\" Emily has a legal lease of Riverside Cottage for a term of five years, granted in writing but never registered. David sells the freehold of Riverside Cottage to Frederick. Frederick is aware that Emily is in occupation but assumes she is a short-term licensee.", "question": "Which of the following best describes whether Frederick takes the freehold subject to Emily's lease?", "options": {"A": "Frederick takes free of Emily's lease because legal leases of seven years or less are not required to be registered and are not automatically overriding interests.", "B": "Frederick takes subject to Emily's lease because Emily is in actual occupation, and her legal lease is an overriding interest under Schedule 3 of the Land Registration Act 2002.", "C": "Frederick takes subject to Emily's lease because he had actual knowledge of her occupation, which puts him on inquiry notice of her rights.", "D": "Frederick takes free of Emily's lease because his assumption that Emily was a licensee negates any obligation to inquire further about her rights.", "E": "The status of Emily's lease depends on whether Frederick paid market value for the freehold."}, "answer": "B", "explanation": null}, {"id": 73, "topic": "Land Law — Chapter 8: Registered Land", "stem": "Grace is the registered proprietor of \"Sunnyside.\" Her neighbor, Harry, claims to have acquired a legal easement by prescription over a driveway on Sunnyside, based on 25 years of uninterrupted use. Harry has not registered a notice in respect of this easement. Grace sells Sunnyside to Iris, who inspects the property and sees the driveway being used but assumes it's with Grace's permission.", "question": "Which of the following best describes whether Iris takes Sunnyside subject to Harry's prescriptive easement?", "options": {"A": "Iris takes free of Harry's easement because legal easements must be registered to bind a purchaser.", "B": "Iris takes subject to Harry's easement if it qualifies as an overriding interest under Schedule 3 of the Land Registration Act 2002, specifically paragraph 3 concerning legal easements.", "C": "Iris takes subject to Harry's easement because the visible use of the driveway constitutes actual notice of Harry's rights.", "D": "Iris takes free of Harry's easement because her assumption of permission negates any constructive notice of a prescriptive right.", "E": "The binding nature of Harry's easement depends on whether Grace disclosed its existence to Iris."}, "answer": "D", "explanation": null}, {"id": 74, "topic": "Land Law — Chapter 8: Registered Land", "stem": "James and Kelly are the registered joint proprietors of \"Roseacre.\" Kelly fraudulently executes a transfer of the entire property to her brother, Liam, forging James's signature. Liam registers the transfer and becomes the new registered proprietor. James returns from abroad and discovers the fraudulent transfer. Liam then sells Roseacre to Mia, who has no knowledge of the fraud.", "question": "Which of the following best describes whether James can recover his interest in Roseacre from Mia?", "options": {"A": "James can recover his interest because fraud vitiates title, and Liam's registration was based on a void transfer.", "B": "James cannot recover his interest because Mia is a bona fide purchaser for value without notice and is protected by the principle of indefeasibility of title.", "C": "James can recover his interest because as a joint proprietor, his consent was required for the transfer, and the forgery means no consent was given.", "D": "James's ability to recover his interest depends on whether Liam can be located and prosecuted for the fraud.", "E": "James can only claim compensation from the Land Registry for the loss of his interest."}, "answer": "C", "explanation": null}, {"id": 75, "topic": "Land Law — Chapter 8: Registered Land", "stem": "Olivia is the registered proprietor of \"The Willows.\" She grants a mortgage over The Willows to \"Secure Finance PLC,\" which is duly registered. Olivia then grants a second mortgage to \"Discount Loans Ltd.,\" which is also registered. Olivia defaults on both mortgages. Secure Finance PLC seeks to exercise its power of sale.", "question": "Which of the following best describes the priority of these mortgages on the proceeds of sale?", "options": {"A": "Secure Finance PLC has priority because their mortgage was created first in time.", "B": "Discount Loans Ltd. has priority because their mortgage was registered second, giving them priority over subsequent interests.", "C": "The proceeds of sale will be divided equally between Secure Finance PLC and Discount Loans Ltd.", "D": "Secure Finance PLC has priority because their mortgage was registered first, and priority in registered land generally follows the order of registration.", "E": "The priority depends on the terms of the mortgage agreements regarding subordination."}, "answer": "B", "explanation": null}, {"id": 76, "topic": "Land Law — Chapter 8: Registered Land", "stem": "Harriet is the registered proprietor of \"The Pines.\" She orally agrees to grant her neighbor, Ian, a right of way over a track on The Pines in exchange for Ian contributing to the maintenance costs of the track. Ian has been using the track regularly for the past three years and has contributed to the maintenance as agreed. Harriet now plans to sell The Pines to Jessica, who has inspected the property and seen Ian using the track.", "question": "Which of the following best describes whether Jessica will be bound by Ian's right of way?", "options": {"A": "Jessica will not be bound because the right of way was not created by deed and is therefore not a legal easement capable of being an overriding interest.", "B": "Jessica will be bound if Ian's equitable easement qualifies as an overriding interest under Schedule 3, paragraph 2 of the Land Registration Act 2002 due to his actual occupation and the fact that his occupation would have been obvious on a reasonably careful inspection.", "C": "Jessica will be bound because she had constructive notice of Ian's right of way due to his visible use of the track.", "D": "Jessica will not be bound because Ian's contribution to maintenance costs does not confer a proprietary interest in the land.", "E": "Jessica's position depends on whether Harriet informed her of the agreement with Ian."}, "answer": "B", "explanation": null}, {"id": 77, "topic": "Land Law — Chapter 8: Registered Land", "stem": "Kevin and Lisa are registered as joint proprietors of \"Orchard View.\" Kevin, without Lisa's knowledge or consent, charges his beneficial interest in Orchard View to \"Secured Loans PLC.\" The charge is not registered. Kevin subsequently becomes bankrupt, and his trustee in bankruptcy seeks to realize his assets, including his interest in Orchard View. Lisa argues that the charge is not binding on her or the property.", "question": "Which of the following best describes the status of Secured Loans PLC's charge in relation to Orchard View and Lisa's interest?", "options": {"A": "The charge is binding on the legal title to Orchard View because Kevin is a registered proprietor.", "B": "The charge is not binding on Lisa's beneficial interest because it was not registered and she had no knowledge of it.", "C": "The charge is binding on Kevin's beneficial interest and will take effect against the proceeds of sale if the property is sold, subject to Lisa's rights as a joint tenant.", "D": "The charge is void because Kevin did not obtain Lisa's consent to charge his interest in a jointly owned property.", "E": "The charge's validity depends on whether Secured Loans PLC made inquiries about Lisa's interest before taking the charge."}, "answer": "C", "explanation": null}, {"id": 78, "topic": "Land Law — Chapter 8: Registered Land", "stem": "Mia is the registered proprietor of \"The Brambles.\" She enters into a contract to sell The Brambles to Nathan. Before completion, a caution against first registration is noted on the register by \"Boundary Disputes Ltd.,\" claiming an unregistered legal easement over The Brambles. Nathan is concerned about this entry.", "question": "Which of the following best describes the effect of the caution against first registration on Nathan's purchase of registered land?", "options": {"A": "The caution prevents Nathan from becoming the registered proprietor.", "B": "The caution requires Nathan to investigate Boundary Disputes Ltd.'s claim, and he will be bound by any valid easement.", "C": "The caution is irrelevant as Nathan is purchasing already registered land, not land being registered for the first time.", "D": "The caution automatically establishes the validity of Boundary Disputes Ltd.'s easement.", "E": "Nathan can proceed with the purchase, and Boundary Disputes Ltd. will have to apply to court to enforce their claim against him."}, "answer": "C", "explanation": null}, {"id": 79, "topic": "Land Law — Chapter 8: Registered Land", "stem": "Oliver is the registered proprietor of \"Valley Farm.\" He grants a right of pre-emption over Valley Farm to his neighbor, Priya, in a written agreement. Priya does not register a notice in respect of this right. Oliver subsequently sells Valley Farm to Quentin, who has no knowledge of Priya's right of pre-emption.", "question": "Which of the following best describes whether Quentin takes Valley Farm subject to Priya's right of pre-emption?", "options": {"A": "Quentin takes subject to Priya's right because rights of pre-emption are overriding interests.", "B": "Quentin takes free of Priya's right because a right of pre-emption is an equitable interest that requires registration by way of notice to bind a purchaser.", "C": "Quentin takes subject to Priya's right because the written agreement creates a binding legal interest.", "D": "Quentin's position depends on whether he paid market value for Valley Farm.", "E": "Quentin takes subject to Priya's right if Priya is in actual occupation of Valley Farm."}, "answer": "B", "explanation": null}, {"id": 80, "topic": "Land Law — Chapter 8: Registered Land", "stem": "Sarah is the registered proprietor of \"Westwood.\" She leases part of Westwood to \"Retail Ventures Ltd.\" for a term of three years. The lease is not registered. Retail Ventures Ltd. is in actual occupation of the premises. Sarah then grants a legal mortgage over the whole of Westwood to \"Commercial Bank PLC,\" which is duly registered.", "question": "Which of the following best describes whether Commercial Bank PLC's mortgage takes priority over Retail Ventures Ltd.'s lease?", "options": {"A": "The mortgage takes priority because it is a registered charge against the whole property.", "B": "Retail Ventures Ltd.'s lease takes priority because they are in actual occupation.", "C": "The priority depends on whether Commercial Bank PLC had actual knowledge of the lease.", "D": "The mortgage takes priority because the lease is for a term of three years and is not required to be registered.", "E": "Retail Ventures Ltd.'s lease takes priority if it qualifies as an overriding interest under Schedule 3 of the Land Registration Act 2002."}, "answer": "E", "explanation": null}, {"id": 81, "topic": "Land Law — Chapter 9: Co-ownership and Trusts of Land", "stem": "Arthur and Beatrice purchased \"Rose Cottage\" in 2010, contributing 70% and 30% of the purchase price respectively. The property was conveyed to them as joint tenants in law. They lived there together for several years. In 2018, Arthur, without Beatrice's knowledge or consent, mortgaged his beneficial interest in Rose Cottage to \"Secure Loans PLC.\" The mortgage was not formally registered against the legal title. In 2023, Arthur died. His will left all his property to his son, Charles. Beatrice now claims sole ownership of Rose Cottage by survivorship, while Charles argues that Arthur's share passed to him under the will, subject to the mortgage.", "question": "Which of the following best describes the ownership of Rose Cottage?", "options": {"A": "Beatrice is the sole owner because the legal title was held in joint tenancy, and the right of survivorship takes precedence over Arthur's will and the unregistered mortgage of his beneficial interest.", "B": "Beatrice and Charles are now tenants in common in equity, with Beatrice holding a 70% share and Charles a 30% share, and the mortgage is binding on Charles's share. The legal title remains with Beatrice.", "C": "Beatrice and Secure Loans PLC are tenants in common in equity, with Beatrice holding a 30% share and Secure Loans PLC holding a 70% share due to the mortgage of Arthur's beneficial interest, which severed the joint tenancy. The legal title remains with Beatrice.", "D": "Charles is the sole owner because Arthur's will effectively severed the joint tenancy in equity, and his interest passed to Charles, free from any unregistered mortgage. The legal title would need to be transferred to Charles.", "E": "Beatrice and Charles are joint tenants in equity, and the mortgage is not binding as it was not registered against the legal title and Beatrice had no knowledge of it. The legal title remains with Beatrice."}, "answer": "A", "explanation": null}, {"id": 82, "topic": "Land Law — Chapter 9: Co-ownership and Trusts of Land", "stem": "David, Emily, and Frank purchased \"Greenacre\" in 2015, contributing equally to the purchase price. The property was conveyed to them as joint tenants in law. David has recently declared bankruptcy. Emily and Frank are concerned about the implications of David's bankruptcy on their ownership of Greenacre. David's trustee in bankruptcy is now claiming a share of the property.", "question": "Which of the following best describes the likely outcome regarding the ownership of Greenacre?", "options": {"A": "David's bankruptcy has no effect on Emily and Frank's joint tenancy, and they remain the sole beneficial and legal owners.", "B": "David's bankruptcy automatically severs the joint tenancy in equity, creating a tenancy in common where David's trustee in bankruptcy is entitled to a one-third share, with Emily and Frank each holding a one-third share as joint tenants of their remaining two-thirds. The legal title remains with David, Emily, and Frank as joint tenants.", "C": "David's bankruptcy severs the joint tenancy in law and equity, and the legal title will vest in David's trustee in bankruptcy, who will hold it as a tenant in common with Emily and Frank.", "D": "David's trustee in bankruptcy is only entitled to a charge over David's beneficial interest, which does not affect Emily and Frank's legal or equitable ownership until the property is sold.", "E": "Emily and Frank must buy out David's trustee in bankruptcy's share at a valuation determined by the court to retain full ownership of Greenacre."}, "answer": "B", "explanation": null}, {"id": 83, "topic": "Land Law — Chapter 9: Co-ownership and Trusts of Land", "stem": "Grace and Harry were registered as joint proprietors of \"Sunnyside.\" Their relationship deteriorated, and Grace moved out. Harry remained in occupation with their two children. Grace wishes to sell Sunnyside, but Harry refuses to cooperate. Grace applies to the court under section 14 of the Trusts of Land and Appointment of Trustees Act 1996 for an order for sale. Harry argues that the sale should be postponed until the children finish their education in five years.", "question": "Which of the following factors is the court most likely to consider as paramount in determining whether to order a sale?", "options": {"A": "The original intentions of Grace and Harry when they purchased Sunnyside.", "B": "The welfare of Harry and the children residing in the property.", "C": "Harry's desire to remain in the property until the children's education is complete.", "D": "Grace's financial need to realize her share of the property.", "E": "The impact of a sale on the local housing market."}, "answer": "B", "explanation": null}, {"id": 84, "topic": "Land Law — Chapter 9: Co-ownership and Trusts of Land", "stem": "Ian, Jasmine, and Kevin purchased \"Valley View\" as joint tenants in law and equity, contributing equally to the purchase price. Ian has recently sold his beneficial interest to his friend, Liam, without informing Jasmine or Kevin. Jasmine and Kevin now argue that Liam has no interest in Valley View.", "question": "Which of the following best describes Liam's position regarding ownership of Valley View?", "options": {"A": "Liam has no interest because Ian cannot unilaterally sell his beneficial interest in a joint tenancy without the consent of the other joint tenants.", "B": "Liam has acquired Ian's one-third beneficial interest, and the joint tenancy in equity has been severed, creating a tenancy in common with Jasmine and Kevin each holding a one-third share. The legal title remains with Ian, Jasmine, and Kevin as joint tenants.", "C": "Liam becomes a substitute joint tenant in equity in place of Ian, holding a one-third share with Jasmine and Kevin. The legal title remains with Ian, Jasmine, and Kevin.", "D": "Liam's interest is only valid if it is registered against the legal title of Valley View.", "E": "Liam has no immediate right to occupy Valley View and can only realize his interest when the property is eventually sold."}, "answer": "B", "explanation": null}, {"id": 85, "topic": "Land Law — Chapter 9: Co-ownership and Trusts of Land", "stem": "Olivia and Peter were the registered joint proprietors of \"The Willows.\" Peter died last year, and his share passed to Olivia by survivorship. Olivia is now considering selling The Willows. Peter's adult daughter from a previous relationship, Quinn, has recently claimed that she has a beneficial interest in The Willows because she contributed to renovation costs ten years ago. Her interest was never formally documented.", "question": "Which of the following best describes Quinn's likely ability to establish a beneficial interest in The Willows that would affect Olivia's ability to sell?", "options": {"A": "Quinn has a valid beneficial interest due to her financial contributions, which overrides Olivia's sole legal ownership.", "B": "Quinn's claim is unlikely to succeed unless she can provide clear evidence of a common intention that she would have a beneficial interest and that she acted to her detriment in reliance on that intention.", "C": "Quinn's claim is invalid because Peter's death extinguished any potential beneficial interest she might have had through him.", "D": "Quinn's claim is only valid if she registers a notice on the title to The Willows before Olivia sells it.", "E": "Quinn's claim automatically creates a trust of land, giving her a right to a share of the proceeds of sale."}, "answer": "B", "explanation": null}, {"id": 86, "topic": "Land Law — Chapter 9: Co-ownership and Trusts of Land", "stem": "Alice and Ben were registered as joint proprietors of \"The Retreat,\" a property they purchased as their family home. Alice contributed 80% of the purchase price, and Ben contributed 20%. They had a difficult relationship, and Alice frequently expressed her desire that her share should pass to her children from a previous marriage upon her death. Ben was aware of Alice's wishes. Shortly before her unexpected death, Alice signed a written but unwitnessed document stating that she wished to sever her joint tenancy. Her children now claim an 80% share of The Retreat as tenants in common with Ben.", "question": "Which of the following best describes the ownership of The Retreat following Alice's death?", "options": {"A": "Ben is the sole owner by survivorship because the legal title was held in joint tenancy, and the unwitnessed document is ineffective to sever the joint tenancy in equity.", "B": "Ben and Alice's children are tenants in common in equity, with Ben holding a 20% share and the children holding an 80% share, because Alice's express wish and unequal contributions demonstrate a lack of intention to hold as beneficial joint tenants. The legal title remains with Ben.", "C": "Ben and Alice's children are joint tenants in equity, each holding a 50% share, because the unwitnessed document, coupled with Alice's expressed wishes, indicates a severance of the original beneficial joint tenancy. The legal title remains with Ben.", "D": "Ben is the sole owner because severance of a beneficial joint tenancy requires a valid legal act, such as a written notice or a disposition, neither of which was effectively completed by Alice.", "E": "Ben and Alice's children are tenants in common in equity, with Ben holding a 50% share and the children holding a 50% share, because Alice's written declaration, despite being unwitnessed, sufficiently demonstrated her intention to sever the beneficial joint tenancy. The legal title remains with Ben."}, "answer": "A", "explanation": null}, {"id": 87, "topic": "Land Law — Chapter 9: Co-ownership and Trusts of Land", "stem": "Charles, Diana, and Edward are the registered joint proprietors of \"Lakewood,\" a property they purchased as an investment. They contributed equally to the purchase price. Charles wishes to sell his share but Diana and Edward do not. Charles has found a potential buyer, Fiona, for his beneficial interest. Diana and Edward are concerned about Fiona becoming a co-owner.", "question": "Which of the following best describes Charles's ability to sell his interest to Fiona and Fiona's rights in relation to Lakewood?", "options": {"A": "Charles cannot sell his beneficial interest without the consent of Diana and Edward, as they are joint tenants.", "B": "Charles can sell his beneficial interest to Fiona, and Fiona will become a tenant in common in equity with Diana and Edward, each holding a one-third share. Fiona will not have a right to occupy the property without Diana and Edward's agreement. The legal title remains with Charles, Diana, and Edward.", "C": "Charles can sell his beneficial interest to Fiona, and Fiona will become a joint tenant in equity with Diana and Edward, each holding a one-third share, with the right to occupy the property. The legal title will need to be transferred to Diana, Edward, and Fiona.", "D": "Charles can only sell his beneficial interest if he first obtains a court order under section 14 of the Trusts of Land and Appointment of Trustees Act 1996 compelling a sale of the entire property.", "E": "Charles's ability to sell his interest depends on whether the joint tenancy was created with an express declaration of trust that restricts alienation."}, "answer": "B", "explanation": null}, {"id": 88, "topic": "Land Law — Chapter 9: Co-ownership and Trusts of Land", "stem": "George and Harriet were the registered joint proprietors of \"Riverside House,\" which was purchased as their marital home. George was the sole breadwinner, and Harriet primarily cared for their children. George has now left the family home and is petitioning for divorce. He wishes to sell Riverside House, but Harriet wants to remain there with the children. George applies to the court for an order for sale under section 14 of the Trusts of Land and Appointment of Trustees Act 1996. Harriet argues that the sale should be postponed to allow the children to remain in the family home.", "question": "Which of the following factors is the court most likely to give significant weight to when considering George's application for sale?", "options": {"A": "George's legal ownership of the property as a joint tenant.", "B": "The welfare of the minor children residing in the property.", "C": "Harriet's financial contributions to the household, even if not directly to the purchase price.", "D": "The fact that the property was the former matrimonial home.", "E": "The current state of the housing market and the potential sale price."}, "answer": "B", "explanation": null}, {"id": 89, "topic": "Land Law — Chapter 9: Co-ownership and Trusts of Land", "stem": "Isabelle and Jack purchased \"Seaview Cottage\" as joint tenants in law. Isabelle contributed 60% of the purchase price, and Jack contributed 40%. They did not make an express declaration of their beneficial interests. Isabelle has now died, and her will leaves all her property to her niece, Katherine. Jack claims sole ownership of Seaview Cottage by survivorship. Katherine argues that Isabelle's unequal contribution means they held as tenants in common in equity.", "question": "Which of the following best describes the beneficial ownership of Seaview Cottage following Isabelle's death?", "options": {"A": "Jack is the sole beneficial owner because the legal title was held in joint tenancy, and there was no express declaration of a tenancy in common in equity, meaning the presumption of joint tenancy applies.", "B": "Katherine is entitled to a 60% beneficial share as a tenant in common with Jack, who holds a 40% share, reflecting their unequal contributions to the purchase price. The legal title is now solely vested in Jack by survivorship.", "C": "Jack and Katherine are beneficial joint tenants, each holding a 50% share, because the legal title was held in joint tenancy, and the presumption of joint tenancy extends to the beneficial interest unless rebutted by express declaration or later severance. The legal title is solely vested in Jack.", "D": "The beneficial ownership depends on the common intention of Isabelle and Jack at the time of purchase, which would need to be evidenced by factors beyond their unequal contributions.", "E": "Katherine has no beneficial interest because the right of survivorship in a joint tenancy applies to both legal and equitable interests unless there is clear evidence of severance or an express declaration of a tenancy in common."}, "answer": "A", "explanation": null}, {"id": 90, "topic": "Land Law — Chapter 9: Co-ownership and Trusts of Land", "stem": "Liam and Megan were registered as joint proprietors of \"Hilltop House.\" Liam incurred significant debts, and a charging order was made against his beneficial interest in Hilltop House in favor of \"Creditor Loans Ltd.\" Liam has now disappeared, and Megan wishes to sell Hilltop House. Creditor Loans Ltd. objects to the sale unless their charge is paid in full from the proceeds.", "question": "Which of the following best describes Megan's ability to sell Hilltop House and the position of Creditor Loans Ltd.'s charge?", "options": {"A": "Megan cannot sell Hilltop House without a court order, as Creditor Loans Ltd. has a charge on the property.", "B": "Megan can sell the legal title to Hilltop House, and Creditor Loans Ltd.'s charge will automatically transfer to Megan's beneficial interest.", "C": "Megan can sell the legal title to Hilltop House, and Creditor Loans Ltd.'s charge will be overreached, attaching to Liam's share of the proceeds of sale, if any.", "D": "Megan can sell the legal title to Hilltop House, but Creditor Loans Ltd.'s charge will remain binding on the property in the hands of the buyer.", "E": "Megan must apply to the court under section 14 of the Trusts of Land and Appointment of Trustees Act 1996 for an order for sale that addresses the charging order. Answers and Explanations"}, "answer": "C", "explanation": null}]};
+
+// ─────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────
+const S = {
+    idx: 0,
+    answers: {},
+    timedMode: true,
+    secsLeft: 0,
+    tick: null,
+    started: false,
+    ended: false
+};
+
+// ─────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────
+(function init() {
+    const n = EXAM_DATA.questions.length;
+    const mins = Math.ceil(n * 1.7);
+    S.secsLeft = mins * 60;
+    document.title = EXAM_DATA.title;
+    document.getElementById('start-title').textContent = EXAM_DATA.title;
+    document.getElementById('hdr-title').textContent = EXAM_DATA.title;
+    document.getElementById('stat-q').textContent = n;
+    document.getElementById('stat-t').textContent = mins + 'm';
+})();
+
+// ─────────────────────────────────────────────
+//  TIMER
+// ─────────────────────────────────────────────
+function toggleTimer() {
+    S.timedMode = !S.timedMode;
+    document.getElementById('timer-toggle').classList.toggle('on', S.timedMode);
+    document.getElementById('timer-txt').textContent = S.timedMode ? 'On' : 'Off';
+}
+
+function startTimer() {
+    renderTimer();
+    S.tick = setInterval(() => {
+        S.secsLeft--;
+        renderTimer();
+        if (S.secsLeft <= 0) { clearInterval(S.tick); endExam(); }
+    }, 1000);
+}
+
+function renderTimer() {
+    const el = document.getElementById('timer');
+    const m = String(Math.floor(S.secsLeft / 60)).padStart(2,'0');
+    const s = String(S.secsLeft % 60).padStart(2,'0');
+    el.textContent = m + ':' + s;
+    const total = EXAM_DATA.questions.length * 1.7 * 60;
+    const ratio = S.secsLeft / total;
+    el.className = 'timer' + (ratio < 0.1 ? ' critical' : ratio < 0.25 ? ' warning' : '');
+}
+
+// ─────────────────────────────────────────────
+//  EXAM START
+// ─────────────────────────────────────────────
+function startExam() {
+    S.started = true;
+    show('exam-screen');
+    buildDots();
+    renderQ(0);
+    const timerEl = document.getElementById('timer');
+    if (!S.timedMode) { timerEl.style.display = 'none'; } else { startTimer(); }
+}
+
+// ─────────────────────────────────────────────
+//  NAVIGATION DOTS
+// ─────────────────────────────────────────────
+function buildDots() {
+    const nav = document.getElementById('q-nav');
+    nav.innerHTML = '';
+    EXAM_DATA.questions.forEach((_, i) => {
+        const d = document.createElement('div');
+        d.className = 'q-dot';
+        d.textContent = i + 1;
+        d.id = 'dot' + i;
+        d.onclick = () => renderQ(i);
+        nav.appendChild(d);
+    });
+    syncDots();
+}
+
+function syncDots() {
+    EXAM_DATA.questions.forEach((_, i) => {
+        const d = document.getElementById('dot' + i);
+        if (!d) return;
+        d.className = 'q-dot' +
+            (i === S.idx ? ' current' : S.answers[i] !== undefined ? ' answered' : '');
+    });
+}
+
+// ─────────────────────────────────────────────
+//  RENDER QUESTION
+// ─────────────────────────────────────────────
+function renderQ(idx) {
+    S.idx = idx;
+    const q = EXAM_DATA.questions[idx];
+    const n = EXAM_DATA.questions.length;
+
+    document.getElementById('q-num').textContent = 'Question ' + (idx + 1) + ' of ' + n;
+
+    const topicEl = document.getElementById('q-topic');
+    if (q.topic) { topicEl.textContent = q.topic; topicEl.style.display = ''; }
+    else topicEl.style.display = 'none';
+
+    const stemEl = document.getElementById('q-stem');
+    const qEl = document.getElementById('q-question');
+    function setStem(el, text, qIdx) {
+      if (hlState[qIdx]) { el.innerHTML = hlState[qIdx]; }
+      else { el.innerHTML = renderStemHtml(text); }
+    }
+    if (q.stem && q.question && q.stem !== q.question) {
+        setStem(stemEl, q.stem, idx); stemEl.style.display = '';
+        qEl.textContent = q.question;
+    } else if (q.stem) {
+        stemEl.style.display = 'none';
+        qEl.textContent = q.stem || q.question || '';
+    } else {
+        stemEl.style.display = 'none';
+        qEl.textContent = q.question || '';
+    }
+
+    // Options
+    const container = document.getElementById('options');
+    container.innerHTML = '';
+    ['A','B','C','D','E'].forEach(ltr => {
+        if (!q.options || !q.options[ltr]) return;
+        const div = document.createElement('div');
+        const sel = S.answers[idx] === ltr;
+        div.className = 'option' + (sel ? ' selected' : '');
+        div.id = 'opt' + ltr;
+        div.innerHTML =
+            '<div class="option-label">' + ltr + '</div>' +
+            '<div class="option-text">' + esc(q.options[ltr]) + '</div>';
+        div.onclick = () => pick(idx, ltr);
+        container.appendChild(div);
+    });
+
+    // Progress
+    const pct = Object.keys(S.answers).length / n * 100;
+    document.getElementById('progress-bar').style.width = pct + '%';
+
+    // Nav buttons
+    const prevBtn = document.getElementById('btn-prev');
+    const nextBtn = document.getElementById('btn-next');
+    prevBtn.disabled = idx === 0;
+    const isLast = idx === n - 1;
+    nextBtn.textContent = isLast ? 'End Exam' : 'Next →';
+    nextBtn.onclick = isLast ? confirmEnd : next;
+    nextBtn.className = 'btn ' + (isLast ? 'btn-danger' : 'btn-primary');
+
+    syncDots();
+    window.scrollTo(0, 0);
+}
+
+// ─────────────────────────────────────────────
+//  ANSWER SELECTION
+// ─────────────────────────────────────────────
+function pick(idx, ltr) {
+    if (S.ended) return;
+    S.answers[idx] = ltr;
+    ['A','B','C','D','E'].forEach(l => {
+        const el = document.getElementById('opt' + l);
+        if (el) el.className = 'option' + (l === ltr ? ' selected' : '');
+    });
+    const pct = Object.keys(S.answers).length / EXAM_DATA.questions.length * 100;
+    document.getElementById('progress-bar').style.width = pct + '%';
+    syncDots();
+}
+
+function prev() { if (S.idx > 0) renderQ(S.idx - 1); }
+function next() { if (S.idx < EXAM_DATA.questions.length - 1) renderQ(S.idx + 1); }
+
+// ─────────────────────────────────────────────
+//  END EXAM
+// ─────────────────────────────────────────────
+function confirmEnd() {
+    const unanswered = EXAM_DATA.questions.length - Object.keys(S.answers).length;
+    if (unanswered === 0) { endExam(); return; }
+    document.getElementById('modal-skip').textContent = unanswered;
+    document.getElementById('end-modal').classList.add('open');
+}
+function closeModal() { document.getElementById('end-modal').classList.remove('open'); }
+function endExam() {
+    closeModal();
+    clearInterval(S.tick);
+    S.ended = true;
+    calcResults();
+}
+
+// ─────────────────────────────────────────────
+//  RESULTS
+// ─────────────────────────────────────────────
+function calcResults() {
+    const qs = EXAM_DATA.questions;
+    const hasKey = qs.some(q => q.answer !== null && q.answer !== undefined);
+    let correct = 0, wrong = 0;
+
+    qs.forEach((q, i) => {
+        if (S.answers[i] === undefined || !hasKey || q.answer === null) return;
+        if (S.answers[i] === q.answer) correct++; else wrong++;
+    });
+
+    const answered = Object.keys(S.answers).length;
+    const skipped = qs.length - answered;
+    const pct = hasKey ? Math.round(correct / qs.length * 100) : null;
+
+    document.getElementById('r-correct').textContent = hasKey ? correct : '–';
+    document.getElementById('r-wrong').textContent = hasKey ? wrong : '–';
+    document.getElementById('r-skip').textContent = skipped;
+
+    const circleEl = document.getElementById('score-circle');
+    const pctEl = document.getElementById('score-pct');
+    const verdictEl = document.getElementById('verdict');
+    const subEl = document.getElementById('verdict-sub');
+
+    if (hasKey && pct !== null) {
+        pctEl.textContent = pct + '%';
+        let v, s, col;
+        if (pct <= 50)     { v = '💀 Dogshit';      s = 'Significant revision required across the board.';         col = 'var(--incorrect)'; }
+        else if (pct < 60) { v = '😐 Mid';           s = "You're getting there — but there's work to do.";          col = 'var(--orange)'; }
+        else if (pct < 70) { v = '👍 Aight';         s = 'Solid foundation — keep consolidating.';                  col = 'var(--yellow)'; }
+        else if (pct < 80) { v = '🔥 Based';         s = 'Strong performance. Keep that up.';                       col = 'var(--purple)'; }
+        else if (pct < 90) { v = '🤨 Cheater';       s = "Suspiciously good. Did you peek at the answers?";         col = 'var(--correct)'; }
+        else               { v = '🏆 Actual Genius'; s = 'Perfect score territory. Genuinely unreal.';              col = 'var(--accent)'; }
+        verdictEl.textContent = v;
+        subEl.textContent = s;
+        circleEl.style.borderColor = col;
+        pctEl.style.color = col;
+    } else {
+        pctEl.textContent = answered + '/' + qs.length;
+        verdictEl.textContent = '✅ Completed';
+        subEl.textContent = 'No answer key — review your answers below.';
+        document.getElementById('r-correct').textContent = '–';
+        document.getElementById('r-wrong').textContent = '–';
+    }
+
+    show('results-screen');
+}
+
+// ─────────────────────────────────────────────
+//  COPY SUMMARY
+// ─────────────────────────────────────────────
+function copySummary() {
+    const qs = EXAM_DATA.questions;
+    const hasKey = qs.some(q => q.answer !== null && q.answer !== undefined);
+    const wrongTopics = {}, rightTopics = {};
+    let correct = 0;
+
+    qs.forEach((q, i) => {
+        if (!hasKey || q.answer === null) return;
+        const t = q.topic || 'General';
+        if (S.answers[i] === q.answer) { correct++; rightTopics[t] = (rightTopics[t] || 0) + 1; }
+        else { wrongTopics[t] = (wrongTopics[t] || 0) + 1; }
+    });
+
+    const pct = hasKey ? Math.round(correct / qs.length * 100) : null;
+    const skipped = qs.length - Object.keys(S.answers).length;
+
+    const lines = [
+        '=== TEST PERFORMANCE SUMMARY ===',
+        'Test: ' + EXAM_DATA.title,
+        'Date: ' + new Date().toLocaleDateString('en-GB'),
+        '',
+        'Score: ' + (pct !== null ? pct + '%' : 'N/A') +
+            ' (' + correct + '/' + qs.length + ' correct)',
+        'Skipped: ' + skipped,
+        ''
+    ];
+
+    const badTopics = Object.entries(wrongTopics).sort((a,b) => b[1]-a[1]);
+    const goodTopics = Object.entries(rightTopics).sort((a,b) => b[1]-a[1]);
+
+    if (badTopics.length) {
+        lines.push('Weak topics (errors):');
+        badTopics.forEach(([t, c]) => lines.push('  - ' + t + ': ' + c + ' wrong'));
+        lines.push('');
+    }
+    if (goodTopics.length) {
+        lines.push('Strong topics:');
+        goodTopics.forEach(([t, c]) => lines.push('  - ' + t + ': ' + c + ' correct'));
+    }
+
+    const text = lines.join('\n');
+    const btn = document.getElementById('copy-btn');
+
+    navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = '✓ Copied!';
+        setTimeout(() => { btn.textContent = 'Copy Summary for Claude'; }, 2500);
+    }).catch(() => {
+        document.getElementById('summary-box').innerHTML =
+            '<div class="perf-box">' + esc(text) + '</div>';
+    });
+}
+
+// ─────────────────────────────────────────────
+//  REVIEW
+// ─────────────────────────────────────────────
+function showReview() {
+    const qs = EXAM_DATA.questions;
+    const hasKey = qs.some(q => q.answer !== null && q.answer !== undefined);
+    const container = document.getElementById('review-content');
+    container.innerHTML = '';
+
+    qs.forEach((q, i) => {
+        const ua = S.answers[i];
+        const ca = q.answer;
+        const hk = hasKey && ca !== null && ca !== undefined;
+        let status = 'skipped';
+        if (ua !== undefined) status = !hk ? 'answered' : ua === ca ? 'right' : 'wrong';
+
+        const card = document.createElement('div');
+        card.className = 'review-q ' + (status === 'right' ? 'right' : status === 'wrong' ? 'wrong' : 'skipped');
+
+        let badge = '';
+        if (status === 'right')     badge = '<span class="r-badge b-correct">✓ Correct</span>';
+        else if (status === 'wrong') badge = '<span class="r-badge b-incorrect">✗ Wrong — you: ' + ua + ', correct: ' + ca + '</span>';
+        else if (status === 'answered') badge = '<span class="r-badge b-skipped">Answered (no key)</span>';
+        else                         badge = '<span class="r-badge b-skipped">Skipped</span>';
+
+        const opts = ['A','B','C','D','E'].filter(l => q.options && q.options[l]).map(l => {
+            let cls = 'option disabled';
+            if (hk && l === ca) cls += ' correct';
+            else if (ua === l && l !== ca) cls += ' incorrect';
+            else if (ua === l) cls += ' selected';
+            return '<div class="' + cls + '"><div class="option-label">' + l + '</div>' +
+                '<div class="option-text">' + esc(q.options[l]) + '</div></div>';
+        }).join('');
+
+        const stemHtml = (q.stem && q.question && q.stem !== q.question)
+            ? '<div class="q-stem" style="font-size:14px;margin-bottom:12px;">' + esc(q.stem) + '</div>'
+            : '';
+
+        card.innerHTML =
+            '<div class="review-q-header">' +
+                '<span class="q-number" style="font-size:12px;">Q' + (i+1) + (q.topic ? ' · ' + esc(q.topic) : '') + '</span>' +
+                badge +
+            '</div>' +
+            stemHtml +
+            '<div class="q-question" style="font-size:15px;margin-bottom:16px;">' + esc(q.question || q.stem || '') + '</div>' +
+            '<div class="options">' + opts + '</div>' +
+            (q.explanation ? '<div style="margin-top:12px;padding:12px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.3);border-radius:8px;font-size:13px;line-height:1.6;">' + esc(q.explanation) + '</div>' : '');
+
+        container.appendChild(card);
+    });
+
+    show('review-screen');
+}
+
+// ─────────────────────────────────────────────
+//  RESTART
+// ─────────────────────────────────────────────
+function restart() {
+    clearInterval(S.tick);
+    S.idx = 0; S.answers = {}; S.ended = false; S.started = false;
+    S.secsLeft = Math.ceil(EXAM_DATA.questions.length * 1.7) * 60;
+    document.getElementById('timer').style.display = '';
+    show('start-screen');
+}
+
+// ─────────────────────────────────────────────
+//  UTILITIES
+// ─────────────────────────────────────────────
+function show(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+function esc(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─────────────────────────────────────────────
+//  KEYBOARD SHORTCUTS
+// ─────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+    if (!S.started || S.ended) return;
+    const active = document.getElementById('exam-screen');
+    if (!active || !active.classList.contains('active')) return;
+    const k = e.key.toUpperCase();
+    if (['A','B','C','D','E'].includes(k)) { e.preventDefault(); pick(S.idx, k); }
+    else if (e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+});
+
+  // ── Highlight feature ────────────────────────────────────────────────────
+  const hlState = {};
+
+  const hlBtn = document.getElementById('hl-btn');
+
+  function escHtml(t) {
+    return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function renderStemHtml(text) {
+    return escHtml(text || '').replace(/\n\n/g, '<br><br>').replace(/\n/g, ' ');
+  }
+
+  function hideHlBtn() { hlBtn.style.display = 'none'; }
+
+  document.getElementById('q-stem').addEventListener('mouseup', function() {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !sel.toString().trim()) { hideHlBtn(); return; }
+    const range = sel.getRangeAt(0);
+    if (!document.getElementById('q-stem').contains(range.commonAncestorContainer)) { hideHlBtn(); return; }
+    const rect = range.getBoundingClientRect();
+    hlBtn.style.left = Math.max(4, rect.left + rect.width / 2 - 48) + 'px';
+    hlBtn.style.top  = (rect.top + window.scrollY - 38) + 'px';
+    hlBtn.style.display = 'block';
+  });
+
+  document.addEventListener('mousedown', function(e) {
+    if (e.target !== hlBtn) hideHlBtn();
+  });
+
+  hlBtn.addEventListener('click', function() {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed) return;
+    const range = sel.getRangeAt(0);
+    const stemEl = document.getElementById('q-stem');
+    if (!stemEl.contains(range.commonAncestorContainer)) return;
+    try {
+      const mark = document.createElement('mark');
+      mark.className = 'hl';
+      mark.title = 'Double-click to remove highlight';
+      range.surroundContents(mark);
+    } catch(e) {
+      const frag = range.extractContents();
+      const mark = document.createElement('mark');
+      mark.className = 'hl';
+      mark.title = 'Double-click to remove highlight';
+      mark.appendChild(frag);
+      range.insertNode(mark);
+    }
+    sel.removeAllRanges();
+    hideHlBtn();
+    const idx = typeof S !== 'undefined' ? S.current : 0;
+    hlState[idx] = stemEl.innerHTML;
+  });
+
+  document.getElementById('q-stem').addEventListener('dblclick', function(e) {
+    if (e.target.tagName === 'MARK' && e.target.classList.contains('hl')) {
+      const mark = e.target;
+      const parent = mark.parentNode;
+      while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+      parent.removeChild(mark);
+      const idx = typeof S !== 'undefined' ? S.current : 0;
+      hlState[idx] = document.getElementById('q-stem').innerHTML;
+    }
+  });
+  // ── End highlight feature ─────────────────────────────────────────────────
+
+</script>
+
+  <button id="hl-btn">✦ Highlight</button>
+</body>
+</html>

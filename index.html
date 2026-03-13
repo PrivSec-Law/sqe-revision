@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SQE1 Revision Hub</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --n0:  #2E3440;
+      --n1:  #3B4252;
+      --n2:  #434C5E;
+      --n3:  #4C566A;
+      --n4:  #D8DEE9;
+      --n5:  #E5E9F0;
+      --n6:  #ECEFF4;
+      --n7:  #8FBCBB;
+      --n8:  #88C0D0;
+      --n9:  #81A1C1;
+      --n10: #5E81AC;
+      --n11: #BF616A;
+      --n12: #D08770;
+      --n13: #EBCB8B;
+      --n14: #A3BE8C;
+      --n15: #B48EAD;
+    }
+
+    html { font-size: 18px; }
+    @media (max-width: 768px) { html { font-size: 15px; } }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      background: var(--n0);
+      color: var(--n4);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      background: linear-gradient(145deg, var(--n0) 0%, var(--n1) 100%);
+    }
+
+    .logo {
+      font-size: 2.8rem;
+      font-weight: 800;
+      color: var(--n6);
+      letter-spacing: -1px;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+    .logo span { color: var(--n8); }
+
+    .subtitle {
+      color: var(--n9);
+      font-size: 0.92rem;
+      margin-bottom: 52px;
+      text-align: center;
+    }
+
+    .cards {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: stretch;
+      max-width: 760px;
+      width: 100%;
+    }
+
+    .card {
+      background: var(--n1);
+      border: 2px solid var(--n3);
+      border-radius: 16px;
+      padding: 38px 42px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      flex: 1 1 300px;
+      max-width: 360px;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .card:hover {
+      background: var(--n2);
+      border-color: var(--n8);
+      transform: translateY(-4px);
+      box-shadow: 0 10px 32px rgba(0,0,0,0.45);
+    }
+
+    .card-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      margin-bottom: 18px;
+    }
+    .card-icon.flashcards {
+      background: rgba(136,192,208,0.18);
+      color: var(--n8);
+    }
+    .card-icon.tests {
+      background: rgba(163,190,140,0.18);
+      color: var(--n14);
+    }
+
+    .card h2 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--n6);
+      margin-bottom: 8px;
+    }
+
+    .card-count {
+      font-size: 0.92rem;
+      color: var(--n8);
+      margin-bottom: 14px;
+      font-weight: 600;
+    }
+
+    .card-desc {
+      font-size: 0.8rem;
+      color: var(--n4);
+      line-height: 1.7;
+    }
+
+    .card-arrow {
+      margin-top: 18px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--n9);
+      transition: color 0.15s;
+    }
+    .card:hover .card-arrow { color: var(--n8); }
+
+    .footer {
+      margin-top: 48px;
+      color: var(--n3);
+      font-size: 0.72rem;
+      text-align: center;
+      line-height: 1.8;
+    }
+
+    @media (max-width: 480px) {
+      .card { padding: 28px 26px; }
+      .logo { font-size: 2.2rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="logo">SQE<span>1</span></div>
+  <div class="subtitle">Revision Hub</div>
+
+  <div class="cards">
+    <a class="card" href="flashcards/index.html">
+      <div class="card-icon flashcards">&#9881;</div>
+      <h2>Flashcards</h2>
+      <div class="card-count">15 subjects &middot; 165 chapters</div>
+      <div class="card-desc">
+        FLK1 &amp; FLK2 flashcards organised by subject and chapter.<br>
+        Flip cards, track progress, review flagged items.
+      </div>
+      <div class="card-arrow">Open Flashcards &#8594;</div>
+    </a>
+
+    <a class="card" href="tests/index.html">
+      <div class="card-icon tests">&#9733;</div>
+      <h2>Practice Tests</h2>
+      <div class="card-count">26 tests &middot; 3,586 questions</div>
+      <div class="card-desc">
+        Full-length exams (180 Qs, timed, 2 sessions + break),<br>
+        official practice exams, and topic-specific tests.
+      </div>
+      <div class="card-arrow">Open Tests &#8594;</div>
+    </a>
+  </div>
+
+  <div class="footer">
+    All content runs offline in your browser &middot; No data leaves your device
+  </div>
+
+</body>
+</html>
